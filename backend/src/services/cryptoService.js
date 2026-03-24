@@ -1,31 +1,40 @@
 /**
  * Cryptographic Service
- * 
- * Handles all cryptographic operations:
- * - Hashing credentials using Keccak256
- * - Signing credentials using private key
- * - Verifying signatures
+ *
+ * Handles hashing, signing, and signature verification for credentials.
  */
 
 const ethers = require("ethers");
 
 class CryptoService {
-  
-  /**
-   * Hash credential data using Keccak256
-   * This matches the hashing in smart contract
-   * 
-   * @param {Object} credentialData - Credential data to hash
-   * @returns {string} Keccak256 hash
-   */
+  static canonicalize(value) {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.canonicalize(item));
+    }
+
+    if (value && typeof value === "object") {
+      return Object.keys(value)
+        .sort()
+        .reduce((accumulator, key) => {
+          if (value[key] !== undefined) {
+            accumulator[key] = this.canonicalize(value[key]);
+          }
+          return accumulator;
+        }, {});
+    }
+
+    return value;
+  }
+
+  static serializeCredential(credentialData) {
+    return JSON.stringify(this.canonicalize(credentialData));
+  }
+
   static hashCredential(credentialData) {
     try {
-      // Convert credential object to JSON string
-      const dataString = JSON.stringify(credentialData);
-      
-      // Hash using Keccak256 (same as contract)
+      const dataString = this.serializeCredential(credentialData);
       const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(dataString));
-      
+
       console.log("[CryptoService] Credential hashed successfully");
       return hash;
     } catch (error) {
@@ -34,22 +43,24 @@ class CryptoService {
     }
   }
 
-  /**
-   * Sign credential data using private key
-   * Creates an ECDSA signature that can be verified against public key
-   * 
-   * @param {string} credentialHash - Hash of credential
-   * @param {string} privateKey - Private key for signing
-   * @returns {Promise<string>} Signed message
-   */
+  static stripProof(verifiableCredential) {
+    if (!verifiableCredential || typeof verifiableCredential !== "object") {
+      throw new Error("A verifiable credential object is required");
+    }
+
+    const { proof, ...unsignedCredential } = verifiableCredential;
+    return unsignedCredential;
+  }
+
+  static hashVerifiableCredential(verifiableCredential) {
+    return this.hashCredential(this.stripProof(verifiableCredential));
+  }
+
   static async signCredential(credentialHash, privateKey) {
     try {
-      // Create wallet from private key
       const wallet = new ethers.Wallet(privateKey);
-      
-      // Sign the hash
       const signature = await wallet.signMessage(ethers.utils.arrayify(credentialHash));
-      
+
       console.log("[CryptoService] Credential signed successfully");
       return signature;
     } catch (error) {
@@ -58,24 +69,19 @@ class CryptoService {
     }
   }
 
-  /**
-   * Verify signature against public key
-   * 
-   * @param {string} credentialHash - Original credential hash
-   * @param {string} signature - Signature to verify
-   * @param {string} publicAddress - Signer's public address
-   * @returns {boolean} True if signature is valid
-   */
   static verifySignature(credentialHash, signature, publicAddress) {
     try {
-      // Recover address from signature
+      if (!signature || !publicAddress) {
+        return false;
+      }
+
       const recoveredAddress = ethers.utils.verifyMessage(
         ethers.utils.arrayify(credentialHash),
         signature
       );
 
       const isValid = recoveredAddress.toLowerCase() === publicAddress.toLowerCase();
-      
+
       console.log("[CryptoService] Signature verification:", isValid);
       return isValid;
     } catch (error) {
@@ -84,12 +90,6 @@ class CryptoService {
     }
   }
 
-  /**
-   * Get public address from private key
-   * 
-   * @param {string} privateKey - Private key
-   * @returns {string} Public address
-   */
   static getAddressFromPrivateKey(privateKey) {
     try {
       const wallet = new ethers.Wallet(privateKey);
@@ -100,22 +100,10 @@ class CryptoService {
     }
   }
 
-  /**
-   * Validate if a string is a valid Ethereum address
-   * 
-   * @param {string} address - Address to validate
-   * @returns {boolean} True if valid address
-   */
   static isValidAddress(address) {
     return ethers.utils.isAddress(address);
   }
 
-  /**
-   * Validate if a string is valid private key
-   * 
-   * @param {string} privateKey - Private key to validate
-   * @returns {boolean} True if valid
-   */
   static isValidPrivateKey(privateKey) {
     try {
       new ethers.Wallet(privateKey);
@@ -125,11 +113,6 @@ class CryptoService {
     }
   }
 
-  /**
-   * Generate random credential ID
-   * 
-   * @returns {string} Random credential ID
-   */
   static generateCredentialId() {
     return ethers.utils.keccak256(
       ethers.utils.toUtf8Bytes(Date.now().toString() + Math.random())

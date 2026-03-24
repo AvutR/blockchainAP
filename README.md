@@ -1,71 +1,107 @@
 # SSI Sepolia Student Credential Demo
 
-This repository is a working demo for issuing, storing, and verifying academic credentials with a Node.js backend, a React frontend, and a Solidity contract on Ethereum Sepolia.
+This project now issues W3C-style academic credentials with:
 
-The README below describes the code as it works today, not the original template plan.
+- `did:ethr` issuer and subject identifiers
+- W3C Verifiable Credential structure
+- `proof`-based signing
+- optional IPFS JSON storage with saved CID
+- on-chain hash anchoring on Sepolia
 
-## What Is Actually Working
+The smart contract still stores only the credential hash and metadata on-chain. The full credential JSON stays off-chain and is kept in backend memory, with optional IPFS upload.
 
-- The backend creates a credential object, hashes it with `keccak256(JSON.stringify(...))`, signs the hash with the issuer private key from `backend/.env`, and registers the hash on-chain.
-- The smart contract stores only credential metadata on-chain: issuer address, issue timestamp, revocation flag, and credential type.
-- The backend stores full credential payloads in memory using JavaScript `Map` objects.
-- The frontend has three working screens:
-  - `/issuer` to issue a credential
-  - `/wallet` to look up credentials by student ID, credential ID, or credential hash
-  - `/verify` to upload a downloaded JSON credential and validate it
+## What Is Implemented
 
-## Important Current Limitations
+- Issuer flow now requires a student wallet address and turns it into `did:ethr:0x...`
+- Credentials are built as W3C-style Verifiable Credentials
+- Credentials are hashed from the unsigned VC payload using deterministic key ordering
+- The backend signs the VC hash and stores the signature in `proof.jws`
+- The VC JSON is optionally uploaded to IPFS when `IPFS_JWT` is configured
+- The wallet downloads a VC-shaped JSON file instead of the old custom export
+- The verifier accepts both the new VC JSON and the old legacy export format
 
-- Wallet storage is in-memory only. If the backend restarts, issued credentials disappear from the wallet API until they are re-issued.
-- The issuer flow does not use MetaMask. Transactions are sent by the backend signer from `backend/.env`.
-- The wallet page stores only the last lookup value in browser `localStorage`, not the credential data itself.
-- The contract supports revocation, but the current frontend does not expose revoke or restore actions.
-- Contract tests are included, but they are not all passing in the current repo state.
-
-## Current Sepolia Deployment
-
-- Network: Sepolia
-- Contract: `CredentialRegistry`
-- Contract address: `0xaC4a4bbEeD7CFb4724C58885103D9f8fEA36571B`
-- Deployer address: `0xF7371242c9dCFcc7C1CA8AcC1B067e455D67407C`
-- Deployment record: `contracts/deployments/sepolia.json`
-- Etherscan: `https://sepolia.etherscan.io/address/0xaC4a4bbEeD7CFb4724C58885103D9f8fEA36571B`
-
-## Architecture
-
-### Backend
-
-The backend lives in `backend/src` and is the center of the app:
-
-- `app.js` exposes REST endpoints and a blockchain status endpoint
-- `services/cryptoService.js` hashes and signs credentials
-- `services/blockchainService.js` talks to the deployed smart contract with `ethers.js`
-- `services/credentialService.js` coordinates issuance and keeps in-memory wallet data
-
-### Smart Contract
-
-`contracts/CredentialRegistry.sol` supports:
-
-- admin-managed issuer registration
-- approved issuer checks
-- credential registration
-- credential verification
-- credential revocation and restore
-- issuer info queries
+## Current Architecture
 
 ### Frontend
 
-The React app lives in `frontend/src`:
+- `/issuer` issues a credential
+- `/wallet` looks up credentials by student ID, DID, wallet address, credential ID, or hash
+- `/verify` uploads a credential JSON file and verifies DID, proof, and blockchain registration
 
-- `pages/IssuerPage.jsx` issues credentials
-- `pages/WalletPage.jsx` loads credentials from the backend and supports JSON download and QR code generation
-- `pages/VerifierPage.jsx` uploads a credential JSON file and verifies it against signature and blockchain data
+### Backend
 
-## Exact Runtime Flow
+- `backend/src/services/credentialService.js` builds the VC, signs it, uploads it to IPFS, and stores it in memory
+- `backend/src/services/cryptoService.js` canonicalizes JSON, hashes payloads, signs hashes, and verifies signatures
+- `backend/src/services/didService.js` converts Ethereum addresses to and from `did:ethr`
+- `backend/src/services/ipfsService.js` uploads JSON to Pinata-compatible IPFS endpoints
+- `backend/src/services/blockchainService.js` registers and verifies the credential hash on Sepolia
 
-### 1. Issuing a Credential
+### Smart Contract
 
-The issuer page calls:
+`contracts/CredentialRegistry.sol` is unchanged in structure and currently stores:
+
+- issuer address
+- issued timestamp
+- revocation status
+- credential type
+
+It does not yet store the IPFS CID on-chain.
+
+## Current VC Shape
+
+Issued credentials now look like this:
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1"
+  ],
+  "id": "urn:uuid:...",
+  "type": [
+    "VerifiableCredential",
+    "UniversityDegreeCredential"
+  ],
+  "issuer": {
+    "id": "did:ethr:0xIssuerWallet",
+    "name": "SSI Sepolia Issuer"
+  },
+  "issuanceDate": "2026-03-24T12:00:00.000Z",
+  "credentialSubject": {
+    "id": "did:ethr:0xStudentWallet",
+    "walletAddress": "0xStudentWallet",
+    "studentId": "0xStudentWallet",
+    "studentName": "Alice Johnson",
+    "degree": "Bachelor of Science in Computer Science",
+    "year": 2026
+  },
+  "proof": {
+    "type": "EcdsaSecp256k1Signature2019",
+    "created": "2026-03-24T12:00:00.000Z",
+    "proofPurpose": "assertionMethod",
+    "verificationMethod": "did:ethr:0xIssuerWallet#controller",
+    "jws": "0x...",
+    "blockchainHash": "0x...",
+    "blockchainTx": "0x...",
+    "blockNumber": 1234567,
+    "storage": {
+      "type": "ipfs",
+      "configured": true,
+      "uploaded": true,
+      "provider": "pinata",
+      "cid": "bafy...",
+      "uri": "ipfs://bafy...",
+      "gatewayUrl": "https://gateway.pinata.cloud/ipfs/bafy...",
+      "message": "Credential uploaded to IPFS"
+    }
+  }
+}
+```
+
+## End-To-End Flow
+
+### 1. Issue
+
+The issuer page sends:
 
 ```http
 POST /api/issuer/issue-credential
@@ -76,42 +112,26 @@ Request body:
 ```json
 {
   "studentName": "Alice Johnson",
+  "studentWalletAddress": "0xStudentWallet",
+  "studentId": "alice-wallet",
   "degree": "Bachelor of Science in Computer Science",
-  "year": 2026,
-  "studentId": "Alice Johnson"
+  "year": 2026
 }
 ```
 
-What the backend does:
+The backend then:
 
-1. Validates `studentName`, `degree`, and `year`.
-2. Loads `PRIVATE_KEY`, `SEPOLIA_RPC_URL`, and `CONTRACT_ADDRESS` from environment variables.
-3. Calls `ensureIssuerReady()`.
-4. If the signer is already approved, issuance continues.
-5. If the signer is the contract admin but not yet approved, the backend auto-registers that signer as an issuer.
-6. If the signer is neither approved nor admin, issuance fails with a `403`.
-7. Builds a credential object with:
-   - `id`
-   - `studentName`
-   - `degree`
-   - `year`
-   - `issuedAt`
-   - `version`
-8. Hashes the full JSON credential.
-9. Signs the hash with the backend private key.
-10. Registers the hash and credential type on Sepolia.
-11. Stores the full issued credential in backend memory under the student ID.
+1. validates the wallet address
+2. converts issuer and subject addresses into `did:ethr`
+3. builds the unsigned VC payload
+4. hashes the VC payload without `proof`
+5. signs the hash with the backend private key
+6. creates the `proof` object
+7. optionally uploads the VC JSON to IPFS
+8. registers the hash on Sepolia
+9. stores the credential in backend memory
 
-Successful response includes:
-
-- `credentialId`
-- `studentId`
-- `credentialHash`
-- `blockchainTx`
-- `blockNumber`
-- `credential`
-
-### 2. Looking Up Credentials in the Wallet
+### 2. Wallet Lookup
 
 The wallet page calls:
 
@@ -119,78 +139,33 @@ The wallet page calls:
 GET /api/wallet/credentials?userId=<lookup>
 ```
 
-The lookup value can be:
+Lookup can be:
 
 - student ID
+- subject DID
+- wallet address
 - credential ID
 - credential hash
 
-What happens:
+### 3. Verify
 
-- The backend searches its in-memory store.
-- Matching credentials are returned with summary fields such as `studentName`, `degree`, `year`, `credentialType`, `credentialHash`, and `blockchainTx`.
-- The page can then:
-  - download the full JSON export
-  - request a QR code for the credential hash
-
-Downloaded JSON format:
-
-```json
-{
-  "credentialHash": "0x...",
-  "signature": "0x...",
-  "credentialType": "Bachelor of Science in Computer Science",
-  "blockchainTx": "0x...",
-  "credential": {
-    "id": "uuid",
-    "studentName": "Alice Johnson",
-    "degree": "Bachelor of Science in Computer Science",
-    "year": 2026,
-    "issuedAt": "2026-03-24T12:00:00.000Z",
-    "version": "1.0"
-  }
-}
-```
-
-### 3. Verifying a Credential
-
-The verifier page expects the downloaded JSON file and calls:
+The verifier page uploads the downloaded VC JSON and sends it to:
 
 ```http
 POST /api/verify/validate-credential
 ```
 
-Request body:
+The verifier backend:
 
-```json
-{
-  "credential": {
-    "id": "uuid",
-    "studentName": "Alice Johnson",
-    "degree": "Bachelor of Science in Computer Science",
-    "year": 2026,
-    "issuedAt": "2026-03-24T12:00:00.000Z",
-    "version": "1.0"
-  },
-  "signature": "0x...",
-  "credentialHash": "0x..."
-}
-```
+1. parses either a new VC payload or the legacy export
+2. recomputes the hash from the unsigned credential payload
+3. resolves the issuer address from the issuer DID
+4. verifies `proof.jws`
+5. checks the credential hash on-chain
 
-What the backend verifies:
+If blockchain access is unavailable, the verifier still reports proof validity and marks blockchain status as unavailable.
 
-1. Recomputes the credential hash from the uploaded JSON.
-2. If `credentialHash` was supplied, checks that it matches the recomputed hash.
-3. Finds the issuer address from the credential or from the blockchain.
-4. Verifies the ECDSA signature against the issuer address.
-5. Checks whether the hash is registered and valid on-chain.
-
-Verification behavior:
-
-- If blockchain access is available, final validity is `signatureValid && blockchainValid`.
-- If blockchain access is unavailable, the response still reports signature status and marks blockchain as unavailable.
-
-## API Summary
+## Current API Summary
 
 Base URL:
 
@@ -198,14 +173,14 @@ Base URL:
 http://localhost:5000/api
 ```
 
-### Issuer Endpoints
+### Issuer
 
 - `POST /issuer/create-credential`
 - `POST /issuer/issue-credential`
 - `GET /issuer/info`
 - `GET /issuer/stats`
 
-### Wallet Endpoints
+### Wallet
 
 - `POST /wallet/store`
 - `GET /wallet/credentials`
@@ -214,7 +189,7 @@ http://localhost:5000/api
 - `GET /wallet/download/:hash`
 - `GET /wallet/summary`
 
-### Verifier Endpoints
+### Verifier
 
 - `POST /verify/validate-credential`
 - `POST /verify/batch`
@@ -222,36 +197,11 @@ http://localhost:5000/api
 - `POST /verify/issuer`
 - `POST /verify/report`
 
-### Utility Endpoints
+### Utility
 
 - `GET /`
 - `GET /health`
 - `GET /api/blockchain/status`
-
-## Project Structure
-
-```text
-blockchainAP/
-|-- contracts/
-|   |-- CredentialRegistry.sol
-|   |-- deployments/sepolia.json
-|   `-- test/CredentialRegistry.test.js
-|-- backend/
-|   |-- src/app.js
-|   |-- src/controllers/
-|   |-- src/routes/
-|   `-- src/services/
-|-- frontend/
-|   |-- src/App.jsx
-|   |-- src/pages/
-|   |-- src/components/
-|   `-- src/services/api.js
-|-- scripts/
-|   |-- deploy.js
-|   `-- seed.js
-|-- hardhat.config.js
-`-- README.md
-```
 
 ## Setup
 
@@ -259,12 +209,11 @@ blockchainAP/
 
 - Node.js 16 or newer
 - npm
-- A Sepolia RPC URL
-- A funded Sepolia private key for the backend signer
+- Sepolia RPC URL
+- funded Sepolia private key for the backend signer
+- optional Pinata JWT for IPFS upload
 
-### 1. Install Dependencies
-
-From the project root:
+### Install
 
 ```bash
 npm install
@@ -273,11 +222,9 @@ cd ../frontend && npm install
 cd ..
 ```
 
-### 2. Configure Root `.env` For Hardhat
+### Root `.env`
 
-The root `.env` is used by Hardhat scripts and tests.
-
-Example:
+Used by Hardhat scripts and tests:
 
 ```env
 PRIVATE_KEY=your_private_key_here
@@ -285,11 +232,9 @@ SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/your_key
 CONTRACT_ADDRESS=0xyour_contract_address
 ```
 
-### 3. Configure `backend/.env`
+### `backend/.env`
 
-The backend is started from the `backend` folder, so it reads `backend/.env`.
-
-Example:
+Used by the backend server:
 
 ```env
 PRIVATE_KEY=your_private_key_here
@@ -298,116 +243,77 @@ CONTRACT_ADDRESS=0xyour_contract_address
 PORT=5000
 FRONTEND_URL=http://localhost:3000
 ISSUER_NAME=SSI Sepolia Issuer
+IPFS_API_URL=https://api.pinata.cloud/pinning/pinJSONToIPFS
+IPFS_JWT=your_pinata_jwt_token
+IPFS_GATEWAY_URL=https://gateway.pinata.cloud/ipfs
 ```
 
-### 4. Optional Frontend `.env`
+### `frontend/.env`
 
-The frontend already defaults to `http://localhost:5000/api`, so this file is optional.
-
-If you want to set it explicitly:
+Optional:
 
 ```env
 REACT_APP_BACKEND_URL=http://localhost:5000/api
 ```
 
-## Run The App
+## Run
 
-### Start The Backend
+Start backend:
 
 ```bash
 npm run backend
 ```
 
-Backend URLs:
-
-- `http://localhost:5000/`
-- `http://localhost:5000/health`
-- `http://localhost:5000/api/blockchain/status`
-
-### Start The Frontend
-
-In a separate terminal:
+Start frontend in another terminal:
 
 ```bash
 npm run frontend
 ```
 
-Frontend URL:
+## Current Sepolia Deployment
 
-- `http://localhost:3000`
+- Contract: `CredentialRegistry`
+- Contract address: `0xaC4a4bbEeD7CFb4724C58885103D9f8fEA36571B`
+- Etherscan: `https://sepolia.etherscan.io/address/0xaC4a4bbEeD7CFb4724C58885103D9f8fEA36571B`
 
-## Smart Contract Commands
-
-Compile:
-
-```bash
-npx hardhat compile
-```
-
-Deploy to Sepolia:
-
-```bash
-npm run deploy-contract
-```
-
-Run contract tests:
-
-```bash
-npm run test-contract
-```
-
-Generate sample data:
-
-```bash
-npm run seed
-```
-
-## Manual Demo Steps
+## Manual Demo
 
 ### Issue
 
-1. Open `http://localhost:3000/issuer`.
-2. Enter a student name, degree, and year.
-3. Submit the form.
-4. Copy the returned wallet lookup ID.
-5. Open the Etherscan transaction link shown in the success panel if you want to inspect the transaction.
+1. Open `http://localhost:3000/issuer`
+2. Enter student name, student wallet address, optional lookup ID, degree, and year
+3. Submit
+4. Copy the lookup ID or DID from the success panel
 
 ### Wallet
 
-1. Open `http://localhost:3000/wallet`.
-2. Paste the wallet lookup ID, credential ID, or credential hash.
-3. Load the credential.
-4. Download the JSON file if you want a verifier-friendly export.
-5. Generate a QR code if needed.
+1. Open `http://localhost:3000/wallet`
+2. Search by lookup ID, DID, wallet address, credential ID, or hash
+3. Download the VC JSON file
+4. Optionally open the IPFS gateway link if a CID was created
 
 ### Verify
 
-1. Open `http://localhost:3000/verify`.
-2. Upload the JSON downloaded from the wallet.
-3. Run verification.
-4. Review the returned signature and blockchain checks.
+1. Open `http://localhost:3000/verify`
+2. Upload the downloaded VC JSON
+3. Review proof and blockchain verification results
 
-## Current Test Status
+## Current Limitations
 
-Running `npm run test-contract` in this repo currently produces partial success:
+- Wallet storage is still in-memory only
+- The backend signs credentials directly; MetaMask is not part of the issuer flow
+- The contract stores hash metadata only, not the IPFS CID
+- Revocation exists in the contract but is not exposed in the frontend
+- There is still no database or authentication layer
 
-- 12 tests passing
-- 15 tests failing
+## Contract Test Status
 
-The failures are from the test suite setup, not from the README:
+`npm run test-contract` still has failing tests in the current repo state. The main issues are in the test suite itself:
 
 - missing Hardhat Chai matcher setup for `revertedWith` and `emit`
 - direct `BigNumber` to number comparisons
-- a call to `credentialExists` as if it were a public function, but it is only a modifier in the contract
-
-## Known Gaps
-
-- No database is connected yet.
-- Credentials cannot be recovered from the blockchain alone because the full credential body is not stored on-chain.
-- Backend state is single-process memory only.
-- There is no authentication layer for issuer, wallet, or verifier users.
-- The frontend does not expose issuer registration, approval management, revocation, or restore flows.
+- one test calling `credentialExists` like a public function even though it is only a modifier
 
 ## Security Note
 
-Do not commit real private keys. Keep `.env` files out of version control and use a funded testnet wallet only.
+Use only a testnet wallet in `.env` files. Do not commit real private keys.

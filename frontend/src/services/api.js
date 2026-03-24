@@ -60,11 +60,11 @@ const post = async (url, data = {}, config = {}, fallbackMessage) => {
 };
 
 export const issuerAPI = {
-  createCredential: async (studentName, degree, year) => {
+  createCredential: async (payload) => {
     try {
       return await post(
         "/issuer/create-credential",
-        { studentName, degree, year },
+        payload,
         {},
         "Unable to create credential."
       );
@@ -73,11 +73,11 @@ export const issuerAPI = {
     }
   },
 
-  issueCredential: async (studentName, degree, year, studentId) => {
+  issueCredential: async (payload) => {
     try {
       return await post(
         "/issuer/issue-credential",
-        { studentName, degree, year, studentId },
+        payload,
         {},
         "Unable to issue credential."
       );
@@ -186,11 +186,11 @@ export const walletAPI = {
 };
 
 export const verifierAPI = {
-  verifyCredential: async (credential, signature, credentialHash) => {
+  verifyCredentialPayload: async (payload) => {
     try {
       return await post(
         "/verify/validate-credential",
-        { credential, signature, credentialHash },
+        payload,
         {},
         "Unable to verify credential."
       );
@@ -237,11 +237,11 @@ export const verifierAPI = {
     }
   },
 
-  getVerificationReport: async (credential, signature) => {
+  getVerificationReport: async (payload) => {
     try {
       return await post(
         "/verify/report",
-        { credential, signature },
+        payload,
         {},
         "Unable to generate verification report."
       );
@@ -272,7 +272,6 @@ export const healthAPI = {
   },
 };
 
-// Backward-compatible alias in case legacy code imports issueAPI.
 export const issueAPI = issuerAPI;
 
 export { apiClient, API_URL };

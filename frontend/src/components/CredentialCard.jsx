@@ -1,7 +1,7 @@
 /**
  * Credential Card Component
- * 
- * Display individual credential in card format
+ *
+ * Displays an individual credential summary in the wallet.
  */
 
 import React from "react";
@@ -22,6 +22,11 @@ function CredentialCard({ credential, onDownload, onQR }) {
         </div>
 
         <div className="field">
+          <label>Subject DID</label>
+          <code className="hash">{credential.subjectDid || "Not available"}</code>
+        </div>
+
+        <div className="field">
           <label>Year</label>
           <p>{credential.year}</p>
         </div>
@@ -33,10 +38,15 @@ function CredentialCard({ credential, onDownload, onQR }) {
 
         <div className="field">
           <label>Hash</label>
-          <code className="hash">
-            {credential.credentialHash.substring(0, 16)}...
-          </code>
+          <code className="hash">{credential.credentialHash}</code>
         </div>
+
+        {credential.ipfsCid && (
+          <div className="field">
+            <label>IPFS CID</label>
+            <code className="hash">{credential.ipfsCid}</code>
+          </div>
+        )}
 
         {credential.blockchainTx && (
           <div className="field">
@@ -47,7 +57,7 @@ function CredentialCard({ credential, onDownload, onQR }) {
               rel="noopener noreferrer"
               className="link"
             >
-              View Transaction ↗
+              View Transaction
             </a>
           </div>
         )}
@@ -59,14 +69,14 @@ function CredentialCard({ credential, onDownload, onQR }) {
           className="btn-download"
           title="Download as JSON"
         >
-          📥 Download
+          Download
         </button>
         <button
           onClick={() => onQR(credential)}
           className="btn-qr"
           title="Generate QR code"
         >
-          📱 QR Code
+          QR Code
         </button>
       </div>
     </div>

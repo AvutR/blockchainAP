@@ -1,26 +1,26 @@
 /**
  * Issuer Page
- * 
- * University/Issuer dashboard for creating and issuing credentials
+ *
+ * University/issuer dashboard for creating W3C-style credentials.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { issuerAPI } from "../services/api";
 import "./IssuerPage.css";
 
 function IssuerPage() {
   const [formData, setFormData] = useState({
     studentName: "",
+    studentWalletAddress: "",
+    studentId: "",
     degree: "",
-    year: new Date().getFullYear()
+    year: new Date().getFullYear(),
   });
-
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [issuerInfo, setIssuerInfo] = useState(null);
 
-  // Fetch issuer info
   useEffect(() => {
     const fetchIssuerInfo = async () => {
       try {
@@ -34,46 +34,50 @@ function IssuerPage() {
     fetchIssuerInfo();
   }, []);
 
-  // Handle form input
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === "year" ? parseInt(value, 10) : value
-    });
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setFormData((current) => ({
+      ...current,
+      [name]: name === "year" ? parseInt(value, 10) : value,
+    }));
   };
 
-  // Issue credential
-  const handleIssueCredential = async (e) => {
-    e.preventDefault();
+  const handleIssueCredential = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      const response = await issuerAPI.issueCredential(
-        formData.studentName,
-        formData.degree,
-        formData.year,
-        formData.studentName
-      );
+      const response = await issuerAPI.issueCredential({
+        studentName: formData.studentName,
+        studentWalletAddress: formData.studentWalletAddress,
+        studentId: formData.studentId || formData.studentWalletAddress,
+        degree: formData.degree,
+        year: formData.year,
+      });
 
       setResult({
-        success: true,
         credentialId: response.credentialId,
         studentId: response.studentId,
         hash: response.credentialHash,
-        tx: response.blockchainTx
+        tx: response.blockchainTx,
+        subjectDid: response.verifiableCredential?.credentialSubject?.id,
+        issuerDid: response.verifiableCredential?.issuer?.id,
+        ipfsCid: response.storage?.cid,
+        ipfsGatewayUrl: response.storage?.gatewayUrl,
       });
 
-      // Reset form
       setFormData({
         studentName: "",
+        studentWalletAddress: "",
+        studentId: "",
         degree: "",
-        year: new Date().getFullYear()
+        year: new Date().getFullYear(),
       });
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -83,8 +87,8 @@ function IssuerPage() {
     <div className="issuer-page">
       <div className="container">
         <div className="header">
-          <h1>🏫 Issuer Dashboard</h1>
-          <p>Create and issue academic credentials on Sepolia blockchain</p>
+          <h1>Issuer Dashboard</h1>
+          <p>Issue W3C-style academic credentials with did:ethr identifiers on Sepolia.</p>
         </div>
 
         {issuerInfo && (
@@ -121,6 +125,31 @@ function IssuerPage() {
           </div>
 
           <div className="form-group">
+            <label htmlFor="studentWalletAddress">Student Wallet Address</label>
+            <input
+              id="studentWalletAddress"
+              type="text"
+              name="studentWalletAddress"
+              value={formData.studentWalletAddress}
+              onChange={handleChange}
+              placeholder="0x..."
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="studentId">Student Lookup ID</label>
+            <input
+              id="studentId"
+              type="text"
+              name="studentId"
+              value={formData.studentId}
+              onChange={handleChange}
+              placeholder="Optional custom wallet lookup value"
+            />
+          </div>
+
+          <div className="form-group">
             <label htmlFor="degree">Degree/Certification</label>
             <input
               id="degree"
@@ -148,7 +177,7 @@ function IssuerPage() {
           </div>
 
           <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? "⏳ Issuing..." : "📝 Issue Credential"}
+            {loading ? "Issuing..." : "Issue Credential"}
           </button>
         </form>
 
@@ -156,7 +185,7 @@ function IssuerPage() {
 
         {result && (
           <div className="success-box">
-            <h3>✅ Credential Issued Successfully!</h3>
+            <h3>Credential Issued Successfully</h3>
             <div className="result-details">
               <div className="detail">
                 <label>Wallet Lookup ID</label>
@@ -167,8 +196,16 @@ function IssuerPage() {
                 <code>{result.credentialId}</code>
               </div>
               <div className="detail">
+                <label>Subject DID</label>
+                <code>{result.subjectDid}</code>
+              </div>
+              <div className="detail">
+                <label>Issuer DID</label>
+                <code>{result.issuerDid}</code>
+              </div>
+              <div className="detail">
                 <label>Credential Hash</label>
-                <code>{result.hash.substring(0, 40)}...</code>
+                <code>{result.hash}</code>
               </div>
               <div className="detail">
                 <label>Transaction Hash</label>
@@ -178,13 +215,26 @@ function IssuerPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {result.tx.substring(0, 20)}...
+                    {result.tx}
                   </a>
                 </code>
               </div>
+              <div className="detail">
+                <label>IPFS CID</label>
+                <code>{result.ipfsCid || "Not uploaded"}</code>
+              </div>
+              {result.ipfsGatewayUrl && (
+                <div className="detail">
+                  <label>IPFS Gateway</label>
+                  <code>
+                    <a href={result.ipfsGatewayUrl} target="_blank" rel="noopener noreferrer">
+                      Open stored credential
+                    </a>
+                  </code>
+                </div>
+              )}
               <p className="note">
-                Student can now open the Wallet page using the wallet lookup ID above.
-                Credential ID and credential hash will also work for lookup.
+                Use the wallet lookup ID, credential ID, wallet address, or DID on the Wallet page.
               </p>
             </div>
           </div>

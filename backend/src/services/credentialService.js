@@ -1,111 +1,181 @@
 /**
  * Credential Service
- * 
- * Core business logic for credentials:
- * - Creating credentials
- * - Storing credentials (in-memory for demo)
- * - Retrieving credentials
- * - Coordinating crypto and blockchain services
+ *
+ * Core business logic for creating, storing, and verifying credentials.
  */
 
 const CryptoService = require("./cryptoService");
 const BlockchainService = require("./blockchainService");
+const DidService = require("./didService");
+const IpfsService = require("./ipfsService");
 const { v4: uuid } = require("uuid");
 
 class CredentialService {
-  
   constructor() {
-    // In-memory storage (in production, use database like MongoDB)
-    this.credentials = new Map(); // userId -> [credentials]
-    this.credentialDetails = new Map(); // hash -> credential details
+    this.credentials = new Map();
+    this.credentialDetails = new Map();
   }
 
-  /**
-   * Create a new credential for a student
-   * 
-   * @param {Object} credentialData - Credential information
-   * @param {string} credentialData.studentName - Student name
-   * @param {string} credentialData.degree - Degree name
-   * @param {number} credentialData.year - Year of graduation
-   * @param {string} issuerPrivateKey - Issuer's private key
-   * @returns {Promise<Object>} Credential with hash and signature
-   */
+  getCredentialType(credentialData) {
+    return credentialData.degree || "UniversityDegreeCredential";
+  }
+
+  getCredentialClass(credentialData) {
+    return credentialData.credentialClass || "UniversityDegreeCredential";
+  }
+
+  buildUnsignedCredential(credentialData, issuerDid, issuerName) {
+    const subjectWalletAddress = credentialData.studentWalletAddress;
+    const subjectDid = DidService.toDid(subjectWalletAddress);
+    const issuanceDate = new Date().toISOString();
+
+    return {
+      "@context": ["https://www.w3.org/2018/credentials/v1"],
+      id: `urn:uuid:${uuid()}`,
+      type: ["VerifiableCredential", this.getCredentialClass(credentialData)],
+      issuer: {
+        id: issuerDid,
+        name: issuerName,
+      },
+      issuanceDate,
+      credentialSubject: {
+        id: subjectDid,
+        walletAddress: subjectWalletAddress,
+        studentId: credentialData.studentId || subjectWalletAddress,
+        studentName: credentialData.studentName,
+        degree: credentialData.degree,
+        year: credentialData.year,
+      },
+    };
+  }
+
+  createProof(signature, issuerDid, createdAt, credentialHash) {
+    return {
+      type: "EcdsaSecp256k1Signature2019",
+      created: createdAt,
+      proofPurpose: "assertionMethod",
+      verificationMethod: DidService.toVerificationMethod(issuerDid),
+      jws: signature,
+      blockchainHash: credentialHash,
+    };
+  }
+
+  async attachIpfsMetadata(verifiableCredential) {
+    const uploadResult = await IpfsService.uploadJSON(
+      verifiableCredential,
+      `vc-${(verifiableCredential.id || Date.now()).replace(/[^a-zA-Z0-9-_]/g, "-")}`
+    );
+
+    verifiableCredential.proof.storage = {
+      type: "ipfs",
+      configured: uploadResult.configured,
+      uploaded: uploadResult.uploaded,
+      provider: uploadResult.provider,
+      cid: uploadResult.cid,
+      uri: uploadResult.uri,
+      gatewayUrl: uploadResult.gatewayUrl,
+      message: uploadResult.message,
+    };
+
+    return uploadResult;
+  }
+
+  summarizeCredential(storedCredential) {
+    const vc = storedCredential.verifiableCredential;
+    const subject = vc?.credentialSubject || {};
+
+    return {
+      id: storedCredential.id,
+      studentId: storedCredential.studentId,
+      credentialHash: storedCredential.credentialHash,
+      credentialType: storedCredential.credentialType,
+      studentName: subject.studentName || storedCredential.data?.studentName,
+      degree: subject.degree || storedCredential.data?.degree,
+      year: subject.year || storedCredential.data?.year,
+      issuedAt: vc?.issuanceDate || storedCredential.data?.issuedAt,
+      blockchainTx: storedCredential.blockchainTx,
+      subjectDid: subject.id || null,
+      issuerDid: vc?.issuer?.id || null,
+      ipfsCid: storedCredential.storage?.cid || vc?.proof?.storage?.cid || null,
+    };
+  }
+
   async createCredential(credentialData, issuerPrivateKey) {
     try {
-      console.log("[CredentialService] 📝 Creating credential...");
+      console.log("[CredentialService] Creating W3C verifiable credential...");
 
-      // Validate input
-      if (!credentialData.studentName || !credentialData.degree || !credentialData.year) {
+      if (
+        !credentialData.studentName ||
+        !credentialData.degree ||
+        !credentialData.year ||
+        !credentialData.studentWalletAddress
+      ) {
         throw new Error("Missing required credential fields");
       }
 
-      // Add metadata
-      const fullCredential = {
-        ...credentialData,
-        id: uuid(),
-        issuedAt: new Date().toISOString(),
-        version: "1.0"
+      if (!CryptoService.isValidAddress(credentialData.studentWalletAddress)) {
+        throw new Error("studentWalletAddress must be a valid Ethereum address");
+      }
+
+      const issuerAddress = CryptoService.getAddressFromPrivateKey(issuerPrivateKey);
+      const issuerDid = DidService.toDid(issuerAddress);
+      const issuerName = process.env.ISSUER_NAME || "SSI Sepolia Issuer";
+      const unsignedCredential = this.buildUnsignedCredential(
+        credentialData,
+        issuerDid,
+        issuerName
+      );
+      const credentialHash = CryptoService.hashVerifiableCredential(unsignedCredential);
+      const signature = await CryptoService.signCredential(credentialHash, issuerPrivateKey);
+
+      const verifiableCredential = {
+        ...unsignedCredential,
+        proof: this.createProof(
+          signature,
+          issuerDid,
+          unsignedCredential.issuanceDate,
+          credentialHash
+        ),
       };
 
-      // Hash the credential
-      const credentialHash = CryptoService.hashCredential(fullCredential);
-      console.log("[CredentialService] Hash:", credentialHash);
+      const storage = await this.attachIpfsMetadata(verifiableCredential);
 
-      // Sign the credential
-      const signature = await CryptoService.signCredential(
-        credentialHash,
-        issuerPrivateKey
-      );
-      console.log("[CredentialService] Signed successfully");
-
-      // Get issuer address
-      const issuerAddress = CryptoService.getAddressFromPrivateKey(issuerPrivateKey);
-
-      const result = {
+      return {
         credentialHash,
         signature,
         issuerAddress,
-        credential: fullCredential,
-        credentialType: credentialData.degree || "Certificate"
+        issuerDid,
+        subjectDid: verifiableCredential.credentialSubject.id,
+        verifiableCredential,
+        credentialType: this.getCredentialType(credentialData),
+        storage,
       };
-
-      console.log("[CredentialService] ✅ Credential created successfully");
-      return result;
     } catch (error) {
       console.error("[CredentialService] Error creating credential:", error);
       throw error;
     }
   }
 
-  /**
-   * Register credential on blockchain and store locally
-   * 
-   * @param {string} studentId - Student ID/wallet
-   * @param {Object} credentialData - Full credential object
-   * @param {string} credentialHash - Hash of credential
-   * @param {string} signature - Signature
-   * @param {string} credentialType - Type of credential
-   * @returns {Promise<Object>} Stored credential with blockchain tx
-   */
   async registerCredential(
     studentId,
-    credentialData,
+    verifiableCredential,
     credentialHash,
     signature,
     credentialType
   ) {
     try {
-      console.log("[CredentialService] 🔗 Registering credential on blockchain...");
+      console.log("[CredentialService] Registering credential on blockchain...");
 
-      // Register on blockchain
       const blockchainResult = await BlockchainService.registerOnChain(
         credentialHash,
         credentialType
       );
 
-      // Store credential locally
+      verifiableCredential.proof.blockchainTx = blockchainResult.transactionHash;
+      verifiableCredential.proof.blockNumber = blockchainResult.blockNumber;
+
       const storedCredential = {
-        id: credentialData.id || uuid(),
+        id: verifiableCredential.id || `urn:uuid:${uuid()}`,
         studentId,
         credentialHash,
         signature,
@@ -113,19 +183,24 @@ class CredentialService {
         blockchainTx: blockchainResult.transactionHash,
         blockNumber: blockchainResult.blockNumber,
         storageTimestamp: new Date().toISOString(),
-        data: credentialData
+        storage: verifiableCredential.proof?.storage || null,
+        verifiableCredential,
+        data: {
+          studentName: verifiableCredential.credentialSubject?.studentName,
+          degree: verifiableCredential.credentialSubject?.degree,
+          year: verifiableCredential.credentialSubject?.year,
+          issuedAt: verifiableCredential.issuanceDate,
+        },
       };
 
-      // Add to student's credentials
       if (!this.credentials.has(studentId)) {
         this.credentials.set(studentId, []);
       }
-      this.credentials.get(studentId).push(storedCredential);
 
-      // Also store by hash for quick lookup
+      this.credentials.get(studentId).push(storedCredential);
       this.credentialDetails.set(credentialHash, storedCredential);
 
-      console.log("[CredentialService] ✅ Credential registered successfully");
+      console.log("[CredentialService] Credential registered successfully");
       return storedCredential;
     } catch (error) {
       console.error("[CredentialService] Error registering credential:", error);
@@ -133,32 +208,20 @@ class CredentialService {
     }
   }
 
-  /**
-   * Issue credential end-to-end
-   * Creates, signs, and registers a credential
-   * 
-   * @param {Object} credentialData - Credential information
-   * @param {string} studentId - Student ID/wallet
-   * @param {string} issuerPrivateKey - Issuer's private key
-   * @returns {Promise<Object>} Complete credential with blockchain confirmation
-   */
   async issueCredential(credentialData, studentId, issuerPrivateKey) {
     try {
-      console.log("[CredentialService] 🎓 Issuing credential...");
+      console.log("[CredentialService] Issuing credential end-to-end...");
 
-      // Step 1: Create credential
       const created = await this.createCredential(credentialData, issuerPrivateKey);
 
-      // Step 2: Register on blockchain
       const registered = await this.registerCredential(
         studentId,
-        created.credential,
+        created.verifiableCredential,
         created.credentialHash,
         created.signature,
         created.credentialType
       );
 
-      console.log("[CredentialService] ✅ Credential issued successfully!");
       return registered;
     } catch (error) {
       console.error("[CredentialService] Error issuing credential:", error);
@@ -166,23 +229,10 @@ class CredentialService {
     }
   }
 
-  /**
-   * Get all credentials for a student
-   * 
-   * @param {string} studentId - Student ID
-   * @returns {Array} Array of credentials
-   */
   getStudentCredentials(studentId) {
     return this.credentials.get(studentId) || [];
   }
 
-  /**
-   * Find credentials by a wallet lookup key.
-   * Supports student ID, credential ID, or credential hash.
-   *
-   * @param {string} lookupKey - Lookup value entered by the user
-   * @returns {Array} Matching credentials
-   */
   findCredentials(lookupKey) {
     if (!lookupKey) {
       return [];
@@ -198,7 +248,9 @@ class CredentialService {
       for (const credential of credentialList) {
         if (
           credential.id === lookupKey ||
-          credential.credentialHash === lookupKey
+          credential.credentialHash === lookupKey ||
+          credential.verifiableCredential?.credentialSubject?.id === lookupKey ||
+          credential.verifiableCredential?.credentialSubject?.walletAddress === lookupKey
         ) {
           matches.push(credential);
         }
@@ -208,41 +260,22 @@ class CredentialService {
     return matches;
   }
 
-  /**
-   * Get specific credential by hash
-   * 
-   * @param {string} credentialHash - Credential hash
-   * @returns {Object} Credential details
-   */
   getCredentialByHash(credentialHash) {
     return this.credentialDetails.get(credentialHash);
   }
 
-  /**
-   * Verify a credential
-   * Checks signature and blockchain validity
-   * 
-   * @param {Object} credential - Credential object with signature
-   * @param {string} issuerAddress - Expected issuer address
-   * @returns {Promise<Object>} Verification result
-   */
   async verifyCredential(credential, issuerAddress) {
     try {
-      console.log("[CredentialService] 🔍 Verifying credential...");
+      const hash = credential.proof
+        ? CryptoService.hashVerifiableCredential(credential)
+        : CryptoService.hashCredential(credential);
 
-      // Hash the credential
-      const hash = CryptoService.hashCredential(credential);
-      console.log("[CredentialService] Computed hash:", hash);
-
-      // Verify signature
       const signatureValid = CryptoService.verifySignature(
         hash,
-        credential.signature,
+        credential.proof?.jws || credential.signature,
         issuerAddress
       );
-      console.log("[CredentialService] Signature valid:", signatureValid);
 
-      // Verify on blockchain
       let blockchainValid = false;
       let blockchainData = null;
 
@@ -250,47 +283,36 @@ class CredentialService {
         blockchainValid = await BlockchainService.verifyOnChain(hash);
         blockchainData = await BlockchainService.getCredentialData(hash);
       } catch (error) {
-        console.log("[CredentialService] Blockchain verification failed (contract may not be deployed)");
+        console.log("[CredentialService] Blockchain verification failed");
       }
 
-      const result = {
+      return {
         isValid: signatureValid && blockchainValid,
         signatureValid,
         blockchainValid,
         credentialHash: hash,
         issuerAddress,
         blockchainData,
-        verifiedAt: new Date().toISOString()
+        verifiedAt: new Date().toISOString(),
       };
-
-      console.log("[CredentialService] ✅ Verification complete");
-      return result;
     } catch (error) {
       console.error("[CredentialService] Error verifying credential:", error);
       throw error;
     }
   }
 
-  /**
-   * Get storage statistics
-   * 
-   * @returns {Object} Statistics
-   */
   getStatistics() {
     return {
       totalStudents: this.credentials.size,
       totalCredentials: this.credentialDetails.size,
-      students: Array.from(this.credentials.keys())
+      students: Array.from(this.credentials.keys()),
     };
   }
 
-  /**
-   * Clear all data (for testing)
-   */
   clearStorage() {
     this.credentials.clear();
     this.credentialDetails.clear();
-    console.log("[CredentialService] 🗑️ Storage cleared");
+    console.log("[CredentialService] Storage cleared");
   }
 }
 

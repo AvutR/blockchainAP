@@ -1,10 +1,10 @@
 /**
  * Wallet Page
  *
- * Student wallet for storing and managing credentials
+ * Student wallet for loading, downloading, and sharing credentials.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { walletAPI } from "../services/api";
 import CredentialCard from "../components/CredentialCard";
 import QRCodeDisplay from "../components/QRCodeDisplay";
@@ -20,7 +20,9 @@ function WalletPage() {
   const [showQR, setShowQR] = useState(false);
 
   const loadCredentials = async (targetUserId = userId) => {
-    if (!targetUserId) return;
+    if (!targetUserId) {
+      return;
+    }
 
     setLoading(true);
     try {
@@ -55,17 +57,12 @@ function WalletPage() {
     syncCredentials();
   }, [userId]);
 
-  // Handle user ID change
-  const handleUserIdChange = (e) => {
-    setUserId(e.target.value);
-  };
-
-  // Download credential
   const handleDownload = async (hash) => {
     try {
       const response = await walletAPI.downloadCredential(hash);
-      const dataStr = JSON.stringify(response, null, 2);
-      const dataBlob = new Blob([dataStr], { type: "application/json" });
+      const dataBlob = new Blob([JSON.stringify(response, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(dataBlob);
       const link = document.createElement("a");
       link.href = url;
@@ -77,7 +74,6 @@ function WalletPage() {
     }
   };
 
-  // Show QR
   const handleShowQR = (credential) => {
     setSelectedCredential(credential);
     setShowQR(true);
@@ -87,30 +83,34 @@ function WalletPage() {
     <div className="wallet-page">
       <div className="container">
         <div className="header">
-          <h1>ðŸ‘¤ Student Wallet</h1>
-          <p>View, download, and share your academic credentials</p>
+          <h1>Student Wallet</h1>
+          <p>Load credentials by wallet lookup ID, DID, credential ID, or credential hash.</p>
         </div>
 
         <div className="user-section">
-          <label>Student ID / Credential ID / Credential Hash</label>
+          <label>Student ID / DID / Wallet Address / Credential ID / Credential Hash</label>
           <div className="user-input-group">
             <input
               type="text"
               value={userId}
-              onChange={handleUserIdChange}
-              placeholder="Enter a student ID, credential ID, or credential hash"
+              onChange={(event) => setUserId(event.target.value)}
+              placeholder="Enter a DID, wallet address, student ID, credential ID, or credential hash"
             />
-            <button onClick={() => loadCredentials()} disabled={!userId} className="btn-secondary">
-              ðŸ”„ Load
+            <button
+              onClick={() => loadCredentials()}
+              disabled={!userId}
+              className="btn-secondary"
+            >
+              Load
             </button>
           </div>
         </div>
 
-        {loading && <div className="loading">â³ Loading credentials...</div>}
+        {loading && <div className="loading">Loading credentials...</div>}
 
         {!loading && credentials.length === 0 && userId && (
           <div className="empty-state">
-            <p>ðŸ“­ No credentials found for this student ID</p>
+            <p>No credentials found for this lookup value.</p>
           </div>
         )}
 
@@ -129,10 +129,7 @@ function WalletPage() {
         )}
 
         {showQR && selectedCredential && (
-          <QRCodeDisplay
-            credential={selectedCredential}
-            onClose={() => setShowQR(false)}
-          />
+          <QRCodeDisplay credential={selectedCredential} onClose={() => setShowQR(false)} />
         )}
       </div>
     </div>
