@@ -1,9 +1,3 @@
-/**
- * Issuer Page
- * 
- * University/Issuer dashboard for creating and issuing credentials
- */
-
 import React, { useState, useEffect } from "react";
 import { issuerAPI } from "../services/api";
 import "./IssuerPage.css";
@@ -80,31 +74,31 @@ function IssuerPage() {
   };
 
   return (
-    <div className="issuer-page">
-      <div className="container">
-        <div className="header">
-          <h1>🏫 Issuer Dashboard</h1>
-          <p>Create and issue academic credentials on Sepolia blockchain</p>
-        </div>
+    <div className="issuer-page container mt-20">
+      <div className="header">
+        <h1>🏫 Issuer Dashboard</h1>
+        <p>Create and issue academic credentials on Sepolia blockchain perfectly</p>
+      </div>
 
-        {issuerInfo && (
-          <div className="issuer-info">
-            <div className="info-card">
-              <label>Issuer Address</label>
-              <code>{issuerInfo.issuerAddress}</code>
-            </div>
-            <div className="info-card">
-              <label>Balance</label>
-              <span>{issuerInfo.balance}</span>
-            </div>
-            <div className="info-card">
-              <label>Network</label>
-              <span>Sepolia (Chain ID: {issuerInfo.network?.chainId})</span>
-            </div>
+      {issuerInfo && (
+        <div className="issuer-info">
+          <div className="info-card glass-panel">
+            <label>Issuer Address</label>
+            <code>{issuerInfo.issuerAddress}</code>
           </div>
-        )}
+          <div className="info-card glass-panel" style={{ borderLeftColor: 'var(--secondary)' }}>
+            <label>Balance</label>
+            <span>{issuerInfo.balance}</span>
+          </div>
+          <div className="info-card glass-panel" style={{ borderLeftColor: 'var(--success)' }}>
+            <label>Network</label>
+            <span>Sepolia (Chain ID: {issuerInfo.network?.chainId})</span>
+          </div>
+        </div>
+      )}
 
-        <form onSubmit={handleIssueCredential} className="credential-form">
+      <div className="credential-form-container">
+        <form onSubmit={handleIssueCredential} className="credential-form glass-panel">
           <h2>Issue New Credential</h2>
 
           <div className="form-group">
@@ -147,49 +141,53 @@ function IssuerPage() {
             />
           </div>
 
-          <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? "⏳ Issuing..." : "📝 Issue Credential"}
+          <button type="submit" disabled={loading} className="btn-primary" style={{ position: 'relative' }}>
+            {loading ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="spinner" style={{ animation: 'spin 1s linear infinite' }}>⏳</span> Issuing...
+              </span>
+            ) : "📝 Issue Credential"}
           </button>
         </form>
-
-        {error && <div className="error-box">{error}</div>}
-
-        {result && (
-          <div className="success-box">
-            <h3>✅ Credential Issued Successfully!</h3>
-            <div className="result-details">
-              <div className="detail">
-                <label>Wallet Lookup ID</label>
-                <code>{result.studentId}</code>
-              </div>
-              <div className="detail">
-                <label>Credential ID</label>
-                <code>{result.credentialId}</code>
-              </div>
-              <div className="detail">
-                <label>Credential Hash</label>
-                <code>{result.hash.substring(0, 40)}...</code>
-              </div>
-              <div className="detail">
-                <label>Transaction Hash</label>
-                <code>
-                  <a
-                    href={`https://sepolia.etherscan.io/tx/${result.tx}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {result.tx.substring(0, 20)}...
-                  </a>
-                </code>
-              </div>
-              <p className="note">
-                Student can now open the Wallet page using the wallet lookup ID above.
-                Credential ID and credential hash will also work for lookup.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
+
+      {error && <div className="error-box mt-20" style={{ maxWidth: '650px', margin: '20px auto' }}>{error}</div>}
+
+      {result && (
+        <div className="success-box" style={{ maxWidth: '650px', margin: '20px auto', flexDirection: 'column', alignItems: 'flex-start' }}>
+          <h3 style={{ marginBottom: '15px' }}>✅ Credential Issued Successfully!</h3>
+          <div className="result-details" style={{ width: '100%' }}>
+            <div className="detail">
+              <label>Wallet Lookup ID</label>
+              <code>{result.studentId}</code>
+            </div>
+            <div className="detail">
+              <label>Credential ID</label>
+              <code>{result.credentialId}</code>
+            </div>
+            <div className="detail">
+              <label>Credential Hash</label>
+              <code>{result.hash.substring(0, 40)}...</code>
+            </div>
+            <div className="detail">
+              <label>Transaction Hash</label>
+              <code>
+                <a
+                  href={`https://sepolia.etherscan.io/tx/${result.tx}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {result.tx.substring(0, 30)}...
+                </a>
+              </code>
+            </div>
+            <p className="note">
+              Student can now open the Wallet page using the wallet lookup ID above.
+              Credential ID and credential hash will also work for lookup.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

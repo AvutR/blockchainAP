@@ -1,51 +1,79 @@
-/* Upload Box Styles */
+/* ============================================================================
+   Upload Box - Premium Glassmorphism
+   ============================================================================ */
 
 .upload-box {
-  border: 2px dashed #d1d5db;
-  border-radius: 12px;
-  padding: 40px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg);
+  padding: 50px 30px;
   text-align: center;
-  transition: all 0.3s ease;
-  background: #f9fafb;
+  transition: all var(--transition-smooth);
   position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.upload-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--primary-glow);
+  opacity: 0;
+  transition: opacity var(--transition-smooth);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .upload-box:hover {
-  border-color: #3b82f6;
-  background: #eff6ff;
+  border-color: rgba(99, 102, 241, 0.5);
+  transform: translateY(-4px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+.upload-box:hover::before {
+  opacity: 0.1;
 }
 
 .upload-box.dragging {
-  border-color: #3b82f6;
-  background: #dbeafe;
+  border-color: var(--primary);
   transform: scale(1.02);
+  background: rgba(99, 102, 241, 0.05);
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
 }
 
 .upload-content {
   pointer-events: none;
+  position: relative;
+  z-index: 1;
 }
 
 .upload-icon {
-  font-size: 3rem;
-  margin-bottom: 15px;
+  font-size: 3.5rem;
+  margin-bottom: 20px;
+  display: inline-block;
+  animation: float 4s ease-in-out infinite;
 }
 
 .upload-box h3 {
-  margin: 10px 0 5px 0;
-  color: #1f2937;
-  font-size: 1.1rem;
+  margin: 10px 0 8px 0;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .upload-box p {
   margin: 5px 0;
-  color: #6b7280;
-  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-size: 1.05rem;
 }
 
 .format {
   font-size: 0.85rem;
-  color: #9ca3af;
-  margin-top: 10px!important;
+  color: var(--text-muted) !important;
+  margin-top: 15px !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .file-input {
@@ -53,37 +81,32 @@
 }
 
 .browse-btn {
-  margin-top: 15px;
-  padding: 10px 24px;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  margin-top: 25px;
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
 }
 
 .browse-btn:hover {
-  background: #2563eb;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-}
-
-.browse-btn:active {
-  transform: scale(0.98);
+  background: rgba(99, 102, 241, 0.2);
+  border-color: var(--primary);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+  transform: translateY(-2px);
 }
 
 @media (max-width: 480px) {
   .upload-box {
-    padding: 30px 15px;
+    padding: 35px 20px;
   }
 
   .upload-icon {
-    font-size: 2.5rem;
+    font-size: 3rem;
   }
 
   .upload-box h3 {
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
 }

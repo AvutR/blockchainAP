@@ -1,15 +1,9 @@
-/**
- * Upload Box Component
- * 
- * Drag & drop file upload for credentials
- */
-
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import "./UploadBox.css";
 
 function UploadBox({ onFileUpload }) {
   const fileInputRef = useRef(null);
-  const [dragging, setDragging] = React.useState(false);
+  const [dragging, setDragging] = useState(false);
 
   // Handle drag over
   const handleDragOver = (e) => {
@@ -33,7 +27,7 @@ function UploadBox({ onFileUpload }) {
       if (file.name.endsWith(".json")) {
         onFileUpload(file);
       } else {
-        alert("Please upload a JSON file");
+        alert("Please upload a .json credential file");
       }
     }
   };
@@ -46,18 +40,26 @@ function UploadBox({ onFileUpload }) {
     }
   };
 
+  // Trigger file selection on click
+  const handleBoxClick = () => {
+    if (!dragging && fileInputRef.current) {
+        fileInputRef.current.click();
+    }
+  };
+
   return (
     <div
       className={`upload-box ${dragging ? "dragging" : ""}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onClick={handleBoxClick}
     >
       <div className="upload-content">
         <div className="upload-icon">📄</div>
-        <h3>Drop credential file here</h3>
-        <p>or click to browse</p>
-        <p className="format">.json format</p>
+        <h3>Drag & Drop Credential File</h3>
+        <p>or click anywhere in the box to browse</p>
+        <p className="format">.json standard credential</p>
       </div>
 
       <input
@@ -69,10 +71,14 @@ function UploadBox({ onFileUpload }) {
       />
 
       <button
-        onClick={() => fileInputRef.current?.click()}
-        className="browse-btn"
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          fileInputRef.current?.click();
+        }}
+        className="btn browse-btn"
       >
-        Browse Files
+        <span>📂</span> Browse Files
       </button>
     </div>
   );

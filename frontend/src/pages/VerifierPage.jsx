@@ -1,9 +1,3 @@
-/**
- * Verifier Page
- * 
- * Verification portal for validating credentials
- */
-
 import React, { useState } from "react";
 import { verifierAPI } from "../services/api";
 import UploadBox from "../components/UploadBox";
@@ -42,6 +36,9 @@ function VerifierPage() {
     setError(null);
 
     try {
+      // Small delay to showcase smooth loading animation
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
       const response = await verifierAPI.verifyCredential(
         credential.credential,
         credential.signature,
@@ -56,165 +53,158 @@ function VerifierPage() {
     }
   };
 
-  // Get status color
-  const getStatusColor = (isValid) => {
-    return isValid ? "#22c55e" : "#ef4444";
-  };
-
   return (
-    <div className="verifier-page">
-      <div className="container">
-        <div className="header">
-          <h1>🔍 Verification Portal</h1>
-          <p>Verify academic credentials on the blockchain</p>
+    <div className="verifier-page container mt-20">
+      <div className="header">
+        <h1>🔍 Verification Portal</h1>
+        <p>Instantly cryptographically verify academic credentials anchored on the blockchain.</p>
+      </div>
+
+      <div className="verifier-layout">
+        {/* Upload Section */}
+        <div className="upload-section glass-panel">
+          <h2>Step 1: Upload Credential</h2>
+          <UploadBox onFileUpload={handleFileUpload} />
         </div>
 
-        <div className="verifier-layout">
-          {/* Upload Section */}
-          <div className="upload-section">
-            <h2>Step 1: Upload Credential</h2>
-            <UploadBox onFileUpload={handleFileUpload} />
-          </div>
-
-          {/* Credential Preview */}
-          {credential && (
-            <div className="preview-section">
-              <h2>Step 2: Review Credential</h2>
-              <div className="preview-card">
-                <div className="preview-row">
-                  <span className="label">Student Name</span>
-                  <span className="value">{credential.credential.studentName}</span>
-                </div>
-                <div className="preview-row">
-                  <span className="label">Degree</span>
-                  <span className="value">{credential.credential.degree}</span>
-                </div>
-                <div className="preview-row">
-                  <span className="label">Year</span>
-                  <span className="value">{credential.credential.year}</span>
-                </div>
-                <div className="preview-row">
-                  <span className="label">Credential Type</span>
-                  <span className="value">{credential.credentialType}</span>
-                </div>
-                <div className="preview-row">
-                  <span className="label">Hash</span>
-                  <code>{credential.credentialHash.substring(0, 20)}...</code>
-                </div>
+        {/* Credential Preview */}
+        {credential && !verification && (
+          <div className="preview-section glass-panel">
+            <h2>Step 2: Review Credential</h2>
+            <div className="preview-card">
+              <div className="preview-row">
+                <span className="label">Student Name</span>
+                <span className="value">{credential.credential.studentName}</span>
               </div>
-
-              <button
-                onClick={handleVerify}
-                disabled={loading}
-                className="btn-primary"
-              >
-                {loading ? "⏳ Verifying..." : "✅ Verify Credential"}
-              </button>
+              <div className="preview-row">
+                <span className="label">Degree</span>
+                <span className="value">{credential.credential.degree}</span>
+              </div>
+              <div className="preview-row">
+                <span className="label">Year</span>
+                <span className="value">{credential.credential.year}</span>
+              </div>
+              <div className="preview-row">
+                <span className="label">Credential Type</span>
+                <span className="value">{credential.credentialType || "Academic"}</span>
+              </div>
+              <div className="preview-row">
+                <span className="label">Hash Data</span>
+                <code>{credential.credentialHash.substring(0, 24)}...</code>
+              </div>
             </div>
-          )}
 
-          {/* Verification Result */}
-          {verification && (
-            <div className="result-section">
-              <h2>Step 3: Verification Result</h2>
+            <button
+              onClick={handleVerify}
+              disabled={loading}
+              className="btn-primary"
+            >
+              {loading ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="spinner" style={{ animation: 'spin 1s linear infinite' }}>⏳</span> Verifying Ledger...
+                </span>
+              ) : "✅ Cryptographically Verify"}
+            </button>
+          </div>
+        )}
 
-              <div
-                className="verification-status"
-                style={{
-                  borderColor: getStatusColor(verification.isValid)
-                }}
-              >
-                <div className="status-icon">
-                  {verification.isValid ? "✅" : "❌"}
-                </div>
-                <div className="status-message">
-                  <h3>{verification.isValid ? "VALID" : "INVALID"}</h3>
-                  <p>{verification.details.message}</p>
-                </div>
+        {/* Verification Result */}
+        {verification && (
+          <div className="result-section glass-panel">
+            <h2>Step 3: Verification Result</h2>
+
+            <div
+              className={`verification-status ${verification.isValid ? 'status-valid' : 'status-invalid'}`}
+            >
+              <div className="status-icon">
+                {verification.isValid ? "✅" : "❌"}
+              </div>
+              <div className="status-message">
+                <h3>{verification.isValid ? "AUTHENTIC" : "INVALID"}</h3>
+                <p>{verification.details?.message || "Verification complete."}</p>
+              </div>
+            </div>
+
+            <div className="verification-details">
+              <div className="detail-group">
+                <h4>Verification Engine</h4>
+                <ul>
+                  <li>
+                    <span className="check-label">Signature Logic</span>
+                    <span className="check-value" style={{ color: verification.details?.checks?.signature === 'Valid' ? 'var(--success)' : 'inherit' }}>
+                      {verification.details?.checks?.signature}
+                    </span>
+                  </li>
+                  <li>
+                    <span className="check-label">Blockchain Anchor</span>
+                    <span className="check-value" style={{ color: verification.details?.checks?.blockchain === 'Valid' ? 'var(--success)' : 'inherit' }}>
+                      {verification.details?.checks?.blockchain}
+                    </span>
+                  </li>
+                </ul>
               </div>
 
-              <div className="verification-details">
-                <div className="detail-group">
-                  <h4>Verification Checks</h4>
-                  <ul>
-                    <li>
-                      <span className="check-label">Signature</span>
-                      <span className="check-value">
-                        {verification.details.checks.signature}
-                      </span>
-                    </li>
-                    <li>
-                      <span className="check-label">Blockchain</span>
-                      <span className="check-value">
-                        {verification.details.checks.blockchain}
-                      </span>
-                    </li>
-                  </ul>
-                </div>
+              <div className="detail-group">
+                <h4>Identity Details</h4>
+                <ul>
+                  <li>
+                    <span className="label">Student</span>
+                    <span className="value">
+                      {verification.verification?.credential?.studentName}
+                    </span>
+                  </li>
+                  <li>
+                    <span className="label">Issuer Address</span>
+                    <code>{verification.verification?.issuerAddress?.substring(0, 16)}...</code>
+                  </li>
+                  <li>
+                    <span className="label">Verified At</span>
+                    <span className="value text-muted" style={{ fontSize: '0.9rem' }}>
+                      {verification.verification?.verifiedAt && new Date(verification.verification.verifiedAt).toLocaleString()}
+                    </span>
+                  </li>
+                </ul>
+              </div>
 
+              {verification.verification?.blockchainData && (
                 <div className="detail-group">
-                  <h4>Credential Details</h4>
+                  <h4>Ledger Data</h4>
                   <ul>
                     <li>
-                      <span className="label">Student</span>
-                      <span className="value">
-                        {verification.verification.credential.studentName}
-                      </span>
-                    </li>
-                    <li>
-                      <span className="label">Issuer</span>
-                      <code>{verification.verification.issuerAddress}</code>
-                    </li>
-                    <li>
-                      <span className="label">Verified At</span>
-                      <span className="value">
+                      <span className="label">Anchored At</span>
+                      <span className="value text-muted" style={{ fontSize: '0.9rem' }}>
                         {new Date(
-                          verification.verification.verifiedAt
+                          verification.verification.blockchainData.issuedAt * 1000
                         ).toLocaleString()}
                       </span>
                     </li>
+                    <li>
+                      <span className="label">Revoked Status</span>
+                      <span className="value">
+                        {verification.verification.blockchainData.revoked
+                          ? <span style={{ color: 'var(--error)' }}>Revoked ❌</span>
+                          : <span style={{ color: 'var(--success)' }}>Active ✅</span>}
+                      </span>
+                    </li>
                   </ul>
                 </div>
-
-                {verification.verification.blockchainData && (
-                  <div className="detail-group">
-                    <h4>Blockchain Data</h4>
-                    <ul>
-                      <li>
-                        <span className="label">Issued At</span>
-                        <span className="value">
-                          {new Date(
-                            verification.verification.blockchainData.issuedAt * 1000
-                          ).toLocaleString()}
-                        </span>
-                      </li>
-                      <li>
-                        <span className="label">Revoked</span>
-                        <span className="value">
-                          {verification.verification.blockchainData.revoked
-                            ? "Yes ❌"
-                            : "No ✅"}
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={() => {
-                  setCredential(null);
-                  setVerification(null);
-                }}
-                className="btn-secondary"
-              >
-                🔄 Verify Another Credential
-              </button>
+              )}
             </div>
-          )}
 
-          {error && <div className="error-box">{error}</div>}
-        </div>
+            <button
+              onClick={() => {
+                setCredential(null);
+                setVerification(null);
+                setError(null);
+              }}
+              className="btn-secondary"
+            >
+              🔄 Verify Another Credential
+            </button>
+          </div>
+        )}
+
+        {error && <div className="error-box mt-20 glass-panel">{error}</div>}
       </div>
     </div>
   );

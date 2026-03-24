@@ -1,17 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
 /* ============================================================================
-   Global Styles
+   Global Variables & Premium Design System
    ============================================================================ */
 
 :root {
-  --primary: #3b82f6;
+  /* Colors - Dark Premium Theme */
+  --bg-base: #0a0f1c; /* Deep rich blue/black */
+  --bg-gradient: radial-gradient(circle at top right, #1a233a, #0a0f1c 100%);
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  
+  --primary: #6366f1; /* Indigo */
+  --primary-hover: #818cf8;
+  --primary-glow: rgba(99, 102, 241, 0.5);
+  --secondary: #ec4899; /* Pink */
+  
   --success: #10b981;
   --error: #ef4444;
   --warning: #f59e0b;
-  --dark: #1f2937;
-  --light: #f3f4f6;
-  --text: #374151;
-  --border: #e5e7eb;
-  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+  /* Spacing */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  
+  /* Transitions */
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
@@ -20,270 +41,185 @@
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
+html, body, #root {
   height: 100%;
   width: 100%;
 }
 
 body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: var(--text);
-  background: #fafbfc;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: var(--primary);
   text-decoration: none;
+  transition: color var(--transition-fast);
 }
 
 a:hover {
-  text-decoration: underline;
+  color: var(--primary-hover);
 }
 
 /* ============================================================================
-   App Layout
+   Layout
    ============================================================================ */
 
 .app {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  position: relative;
+}
+
+/* Subtle background accent orbs */
+.app::before, .app::after {
+  content: '';
+  position: fixed;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(120px);
+  z-index: -1;
+  opacity: 0.3;
+  animation: floatOrb 20s ease-in-out infinite alternate;
+}
+
+.app::before {
+  background: var(--primary);
+  top: -200px;
+  left: -200px;
+}
+
+.app::after {
+  background: var(--secondary);
+  bottom: -200px;
+  right: -200px;
+  animation-delay: -10s;
 }
 
 .main-content {
   flex: 1;
-  padding: 20px 0;
+  padding: 40px 0;
+  animation: fadeIn 0.8s var(--transition-smooth) both;
 }
-
-/* ============================================================================
-   Container
-   ============================================================================ */
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 24px;
 }
 
 /* ============================================================================
-   Home Page
+   Glassmorphism UI Utilities
    ============================================================================ */
 
-.home-page {
-  padding: 60px 0 40px 0;
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  transition: transform var(--transition-smooth), border-color var(--transition-fast);
 }
 
-.hero {
-  text-align: center;
-  margin-bottom: 60px;
+.glass-panel:hover {
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
-.hero h1 {
-  font-size: 3.5rem;
-  margin-bottom: 10px;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+/* ============================================================================
+   Typography
+   ============================================================================ */
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.hero p {
-  font-size: 1.25rem;
-  color: var(--text);
-  margin-bottom: 20px;
-}
-
-.hero-description {
-  max-width: 600px;
-  margin: 30px auto 40px;
-  font-size: 1rem;
-  color: #6b7280;
-  line-height: 1.6;
-}
-
-.cta-buttons {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 30px;
+.text-gradient-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* ============================================================================
    Buttons
    ============================================================================ */
 
-.btn,
-button {
-  padding: 12px 24px;
+.btn, button {
+  padding: 14px 28px;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 500;
+  border-radius: var(--radius-md);
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-family: 'Outfit', sans-serif;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-smooth);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
 }
 
-.btn-primary,
-.btn:not(.btn-secondary) {
-  background: var(--primary);
+.btn-primary, .btn:not(.btn-secondary) {
+  background: linear-gradient(135deg, var(--primary), #4f46e5);
   color: white;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
 }
 
-.btn-primary:hover,
-.btn:not(.btn-secondary):hover {
-  background: #2563eb;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+.btn-primary:hover, .btn:not(.btn-secondary):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+}
+
+.btn-primary:active, .btn:not(.btn-secondary):active {
+  transform: translateY(1px);
+}
+
+/* Button Glow Effect */
+.btn-primary::after, .btn:not(.btn-secondary):after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 15px var(--primary-glow);
+  opacity: 0;
+  transition: opacity var(--transition-smooth);
+}
+
+.btn-primary:hover::after, .btn:not(.btn-secondary):hover::after {
+  opacity: 1;
 }
 
 .btn-secondary {
-  background: var(--light);
-  color: var(--dark);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
 }
 
 .btn-secondary:hover {
-  background: white;
-  border-color: var(--primary);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
-}
-
-/* ============================================================================
-   Features Grid
-   ============================================================================ */
-
-.features,
-.workflow,
-.info-section {
-  margin-bottom: 60px;
-}
-
-.features h2,
-.workflow h2,
-.info-section h2 {
-  font-size: 2rem;
-  margin-bottom: 30px;
-  text-align: center;
-}
-
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-}
-
-.feature {
-  background: white;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-  transition: all 0.3s ease;
-  text-align: center;
-}
-
-.feature:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-}
-
-.feature-icon {
-  font-size: 3rem;
-  margin-bottom: 15px;
-}
-
-.feature h3 {
-  font-size: 1.25rem;
-  margin-bottom: 10px;
-}
-
-.feature p {
-  color: #6b7280;
-  line-height: 1.6;
-}
-
-/* ============================================================================
-   Workflow
-   ============================================================================ */
-
-.workflow-steps {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  overflow-x: auto;
-  padding: 20px 0;
-  margin-bottom: 30px;
-}
-
-.step {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  min-width: 150px;
-  text-align: center;
-  box-shadow: var(--shadow);
-}
-
-.step-number {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: var(--primary);
-  color: white;
-  border-radius: 50%;
-  font-weight: bold;
-  margin: 0 auto 10px;
-}
-
-.step h3 {
-  font-size: 1rem;
-  margin-bottom: 5px;
-}
-
-.step p {
-  font-size: 0.9rem;
-  color: #6b7280;
-}
-
-.arrow {
-  font-size: 1.5rem;
-  color: var(--primary);
-  min-width: 30px;
-}
-
-/* ============================================================================
-   Tech Stack
-   ============================================================================ */
-
-.tech-stack {
-  background: var(--light);
-  padding: 20px;
-  border-radius: 8px;
-  margin-top: 20px;
-}
-
-.tech-stack h3 {
-  margin-bottom: 15px;
-}
-
-.tech-stack ul {
-  list-style: none;
-  columns: 2;
-  gap: 30px;
-}
-
-.tech-stack li {
-  padding: 8px 0;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* ============================================================================
@@ -291,88 +227,294 @@ button:disabled {
    ============================================================================ */
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  position: relative;
 }
 
 .form-group label {
   display: block;
   font-weight: 500;
-  margin-bottom: 8px;
-  color: var(--dark);
+  margin-bottom: 10px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  transition: color var(--transition-fast);
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  font-size: 1.05rem;
+  color: var(--text-primary);
   font-family: inherit;
-  transition: border-color 0.3s ease;
+  transition: all var(--transition-smooth);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--text-muted);
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
+  background: rgba(0, 0, 0, 0.4);
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+}
+
+.form-group:focus-within label {
+  color: var(--primary);
 }
 
 /* ============================================================================
-   Cards
+   Cards (General)
    ============================================================================ */
 
 .card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-  padding: 20px;
-  transition: all 0.3s ease;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  padding: 30px;
+  transition: all var(--transition-smooth);
 }
 
 .card:hover {
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================================================
+   Home Page Specifics
+   ============================================================================ */
+
+.home-page {
+  padding: 80px 0 60px 0;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 80px;
+  animation: fadeUp 0.8s var(--transition-smooth) both;
+}
+
+.hero h1 {
+  font-size: 4.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 24px;
+  letter-spacing: -1px;
+}
+
+.hero p {
+  font-size: 1.35rem;
+  color: var(--text-secondary);
+  max-width: 650px;
+  margin: 0 auto 40px;
+  line-height: 1.6;
+}
+
+.cta-buttons {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Features Grid */
+.features h2, .workflow h2, .info-section h2 {
+  font-size: 2.5rem;
+  margin-bottom: 40px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 30px;
+}
+
+.feature {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 40px 30px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  text-align: center;
+  transition: all var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.feature:hover::before {
+  transform: translateX(100%);
+}
+
+.feature:hover {
+  transform: translateY(-8px);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.feature-icon {
+  font-size: 3.5rem;
+  margin-bottom: 24px;
+  display: inline-block;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: float 6s ease-in-out infinite;
+}
+
+.feature h3 {
+  font-size: 1.4rem;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.feature p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* ============================================================================
+   Workflow Slider/Carousel
+   ============================================================================ */
+
+.workflow-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 30px 10px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.workflow-steps::-webkit-scrollbar {
+  display: none;
+}
+
+.step {
+  flex: 0 0 280px;
+  scroll-snap-align: center;
+  background: rgba(255,255,255,0.03);
+  padding: 30px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  text-align: center;
+  position: relative;
+}
+
+.step-number {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, var(--primary), #4f46e5);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 auto 20px;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+}
+
+.step h3 {
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.step p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.arrow {
+  color: var(--primary);
+  opacity: 0.5;
+  font-size: 1.5rem;
 }
 
 /* ============================================================================
    Status Messages
    ============================================================================ */
 
-.success-box,
-.error-box,
-.info-box,
-.warning-box {
-  padding: 20px;
-  border-radius: 8px;
+.success-box, .error-box, .info-box, .warning-box {
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
   margin: 20px 0;
-  border-left: 4px solid;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: slideIn 0.4s var(--transition-smooth) both;
+  backdrop-filter: blur(8px);
 }
 
 .success-box {
-  background: #ecfdf5;
-  border-color: var(--success);
-  color: #065f46;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #34d399;
 }
 
 .error-box {
-  background: #fef2f2;
-  border-color: var(--error);
-  color: #7f1d1d;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #f87171;
 }
 
-.info-box {
-  background: #eff6ff;
-  border-color: var(--primary);
-  color: #0c2340;
+/* ============================================================================
+   Animations
+   ============================================================================ */
+
+@keyframes floatOrb {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, 50px) scale(1.1); }
+  100% { transform: translate(-20px, 20px) scale(0.9); }
 }
 
-.warning-box {
-  background: #fffbeb;
-  border-color: var(--warning);
-  color: #78370f;
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
 }
 
 /* ============================================================================
@@ -380,52 +522,15 @@ button:disabled {
    ============================================================================ */
 
 .footer {
-  background: var(--dark);
-  color: white;
-  padding: 20px;
-  text-align: center;
-  margin-top: 40px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.footer a {
-  color: #93c5fd;
-}
-
-.footer a:hover {
-  color: #60a5fa;
-}
-
-/* ============================================================================
-   Loading & Empty States
-   ============================================================================ */
-
-.loading {
   text-align: center;
   padding: 40px 20px;
-  color: #6b7280;
-  font-size: 1.1rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--glass-border);
+  margin-top: auto;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-}
-
-.empty-state p {
-  font-size: 1.1rem;
-  color: #6b7280;
-}
-
-.error-page {
-  text-align: center;
-  padding: 60px 20px;
-}
-
-.error-page h1 {
-  font-size: 2rem;
-  margin-bottom: 20px;
-  color: var(--error);
+.footer p {
+  font-size: 0.95rem;
 }
 
 /* ============================================================================
@@ -433,100 +538,14 @@ button:disabled {
    ============================================================================ */
 
 @media (max-width: 768px) {
-  .hero h1 {
-    font-size: 2rem;
-  }
-
-  .hero p {
-    font-size: 1rem;
-  }
-
-  .cta-buttons {
-    flex-direction: column;
-  }
-
-  .btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .features-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .workflow-steps {
-    flex-direction: column;
-  }
-
-  .arrow {
-    transform: rotate(90deg);
-  }
-
-  .tech-stack ul {
-    columns: 1;
-  }
+  .hero h1 { font-size: 3rem; }
+  .features-grid { grid-template-columns: 1fr; }
+  .workflow-steps { flex-direction: column; overflow: visible; padding: 20px 0; }
+  .step { width: 100%; margin-bottom: 20px; flex: none; }
+  .arrow { transform: rotate(90deg); margin: 10px 0; }
 }
 
-/* ============================================================================
-   Code Blocks
-   ============================================================================ */
-
-code {
-  background: var(--light);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  font-family: "Courier New", monospace;
-  word-break: break-all;
-}
-
-.code-block {
-  background: #1f2937;
-  color: #f3f4f6;
-  padding: 20px;
-  border-radius: 8px;
-  overflow-x: auto;
-  margin: 20px 0;
-}
-
-/* ============================================================================
-   Utility Classes
-   ============================================================================ */
-
-.text-center {
-  text-align: center;
-}
-
-.text-right {
-  text-align: right;
-}
-
-.mb-10 {
-  margin-bottom: 10px;
-}
-
-.mb-20 {
-  margin-bottom: 20px;
-}
-
-.mt-20 {
-  margin-top: 20px;
-}
-
-.flex {
-  display: flex;
-}
-
-.flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.gap-10 {
-  gap: 10px;
-}
-
-.gap-20 {
-  gap: 20px;
-}
+/* Utilities */
+.text-center { text-align: center; }
+.mb-20 { margin-bottom: 20px; }
+.mt-20 { margin-top: 20px; }

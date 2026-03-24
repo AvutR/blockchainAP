@@ -1,9 +1,3 @@
-/**
- * Credential Card Component
- * 
- * Display individual credential in card format
- */
-
 import React from "react";
 import "./CredentialCard.css";
 
@@ -12,7 +6,7 @@ function CredentialCard({ credential, onDownload, onQR }) {
     <div className="credential-card">
       <div className="card-header">
         <h3>{credential.degree}</h3>
-        <span className="badge">{credential.credentialType}</span>
+        <span className="badge">{credential.credentialType || "Academic"}</span>
       </div>
 
       <div className="card-body">
@@ -59,14 +53,14 @@ function CredentialCard({ credential, onDownload, onQR }) {
           className="btn-download"
           title="Download as JSON"
         >
-          📥 Download
+          <span>📥</span> Download
         </button>
         <button
           onClick={() => onQR(credential)}
           className="btn-qr"
           title="Generate QR code"
         >
-          📱 QR Code
+          <span>📱</span> QR Code
         </button>
       </div>
     </div>

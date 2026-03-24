@@ -1,11 +1,10 @@
 /**
  * Main App Component
- * 
- * Root component with routing
+ * Root component with routing and premium Home Page
  */
 
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import Navigation from "./components/Navigation";
 import IssuerPage from "./pages/IssuerPage";
 import WalletPage from "./pages/WalletPage";
@@ -13,6 +12,31 @@ import VerifierPage from "./pages/VerifierPage";
 import "./App.css";
 
 function App() {
+  
+  // Example of adding entrance animations on scroll (simple observer implementation)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.style.opacity = 1;
+            entry.target.style.transform = 'translateY(0)';
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    document.querySelectorAll('.animate-on-scroll').forEach((el) => {
+      el.style.opacity = 0;
+      el.style.transform = 'translateY(40px)';
+      el.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+      observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <Router>
       <div className="app">
@@ -26,132 +50,93 @@ function App() {
                 <div className="home-page">
                   <div className="container">
                     <div className="hero">
-                      <h1>🎓 SSI Sepolia</h1>
-                      <p>Decentralized Self-Sovereign Student Identity System</p>
-
-                      <div className="hero-description">
-                        <p>
-                          A blockchain-based platform for creating, storing, and verifying
-                          academic credentials using Ethereum's Sepolia testnet.
-                        </p>
+                      <div className="badge-pill mb-10" style={{ 
+                        display: 'inline-block', padding: '6px 16px', background: 'rgba(99, 102, 241, 0.1)', 
+                        border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '30px', color: '#818cf8', fontWeight: '500', fontSize: '0.9rem' 
+                      }}>
+                        Version 2.0 Is Live
                       </div>
+                      <h1>
+                        Decentralized <span className="text-gradient-primary">Sovereign</span><br />
+                        Student Identity
+                      </h1>
+                      <p>
+                        A seamless, premium blockchain platform for issuing, storing, and instantly verifying academic credentials on the Sepolia network.
+                      </p>
 
                       <div className="cta-buttons">
-                        <a href="/issuer" className="btn btn-primary">
-                          🏫 Issue Credentials
-                        </a>
-                        <a href="/wallet" className="btn btn-secondary">
-                          👤 Manage Wallet
-                        </a>
-                        <a href="/verify" className="btn btn-secondary">
-                          🔍 Verify Credentials
-                        </a>
+                        <Link to="/issuer" className="btn btn-primary">
+                          <span style={{fontSize: '1.2rem'}}>🏫</span> Issue Credentials
+                        </Link>
+                        <Link to="/wallet" className="btn btn-secondary">
+                          <span style={{fontSize: '1.2rem'}}>👤</span> Manage Wallet
+                        </Link>
                       </div>
                     </div>
 
-                    <div className="features">
-                      <h2>Key Features</h2>
+                    <div className="features animate-on-scroll">
+                      <h2>Next-Generation Features</h2>
                       <div className="features-grid">
-                        <div className="feature">
+                        <div className="feature glass-panel">
                           <div className="feature-icon">🔐</div>
                           <h3>Cryptographically Secure</h3>
-                          <p>ECDSA signatures ensure credential authenticity</p>
+                          <p>Industry-standard ECDSA signatures guarantee absolute authenticity and prevent any tampering of records.</p>
                         </div>
 
-                        <div className="feature">
+                        <div className="feature glass-panel">
                           <div className="feature-icon">⛓️</div>
-                          <h3>Blockchain Verified</h3>
-                          <p>Credentials anchored on Sepolia for permanence</p>
+                          <h3>Immutable Records</h3>
+                          <p>Every credential hash is permanently anchored on the Sepolia Ethereum testnet for lifetime accessibility.</p>
                         </div>
 
-                        <div className="feature">
+                        <div className="feature glass-panel">
                           <div className="feature-icon">🔑</div>
-                          <h3>Self-Sovereign</h3>
-                          <p>Students own their credentials completely</p>
-                        </div>
-
-                        <div className="feature">
-                          <div className="feature-icon">✅</div>
-                          <h3>Instant Verification</h3>
-                          <p>Verifiers can validate credentials in seconds</p>
-                        </div>
-
-                        <div className="feature">
-                          <div className="feature-icon">🌐</div>
-                          <h3>Web3 Native</h3>
-                          <p>Built on modern blockchain standards</p>
-                        </div>
-
-                        <div className="feature">
-                          <div className="feature-icon">📲</div>
-                          <h3>QR Code Sharing</h3>
-                          <p>Share credentials easily via QR codes</p>
+                          <h3>True Sovereignty</h3>
+                          <p>Give students absolute control over their data, maintaining true ownership without centralized platforms.</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="workflow">
-                      <h2>How It Works</h2>
+                    <div className="workflow animate-on-scroll mt-20">
+                      <h2>Elegant Workflow</h2>
                       <div className="workflow-steps">
-                        <div className="step">
+                        <div className="step glass-panel">
                           <div className="step-number">1</div>
-                          <h3>Issuer Creates</h3>
-                          <p>University issues credential</p>
+                          <h3>Issue</h3>
+                          <p>Institution creates a credential</p>
                         </div>
 
                         <div className="arrow">→</div>
 
-                        <div className="step">
+                        <div className="step glass-panel">
                           <div className="step-number">2</div>
-                          <h3>Sign & Hash</h3>
-                          <p>Credential is signed and hashed</p>
+                          <h3>Anchor</h3>
+                          <p>Signed hash is stored on-chain</p>
                         </div>
 
                         <div className="arrow">→</div>
 
-                        <div className="step">
+                        <div className="step glass-panel">
                           <div className="step-number">3</div>
-                          <h3>Store On-Chain</h3>
-                          <p>Hash registered on Sepolia</p>
-                        </div>
-
-                        <div className="arrow">→</div>
-
-                        <div className="step">
-                          <div className="step-number">4</div>
-                          <h3>Student Stores</h3>
-                          <p>Credential saved to wallet</p>
-                        </div>
-
-                        <div className="arrow">→</div>
-
-                        <div className="step">
-                          <div className="step-number">5</div>
-                          <h3>Verifier Checks</h3>
-                          <p>Anyone can verify instantly</p>
+                          <h3>Verify</h3>
+                          <p>Instant, one-click verification</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="info-section">
-                      <h2>About This Project</h2>
-                      <p>
-                        This system implements Self-Sovereign Identity (SSI) principles,
-                        allowing students to maintain tamper-proof, verifiable academic
-                        credentials without relying on a central authority. Credentials are
-                        cryptographically signed by issuers and permanently anchored on the
-                        Ethereum blockchain.
-                      </p>
-                      <div className="tech-stack">
-                        <h3>Tech Stack</h3>
-                        <ul>
-                          <li>⛓️ Solidity Smart Contracts</li>
-                          <li>🔗 Sepolia Testnet</li>
-                          <li>🛠️ ethers.js for Web3</li>
-                          <li>📦 Node.js Backend</li>
-                          <li>⚛️ React Frontend</li>
-                          <li>🔐 ECDSA Cryptography</li>
-                        </ul>
+                    <div className="info-section animate-on-scroll mt-20 text-center">
+                      <div className="glass-panel" style={{ padding: '50px', maxWidth: '800px', margin: '0 auto' }}>
+                        <h2>The Technology</h2>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', lineHeight: '1.8' }}>
+                          Built on cutting-edge Web3 principles, offering a fluid, luxurious user experience 
+                          while maintaining military-grade cryptographic security under the hood. 
+                          Experience the future of academic verification today.
+                        </p>
+                        <div className="mt-20">
+                           <Link to="/verify" className="btn btn-primary">
+                             Experience Verification
+                           </Link>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -167,9 +152,10 @@ function App() {
               path="*"
               element={
                 <div className="container">
-                  <div className="error-page">
-                    <h1>404 - Page Not Found</h1>
-                    <a href="/">← Go Home</a>
+                  <div className="error-page glass-panel" style={{ marginTop: '100px' }}>
+                    <h1>404</h1>
+                    <p>The page you are looking for does not exist in this realm.</p>
+                    <Link to="/" className="btn btn-primary mt-20">Return Home</Link>
                   </div>
                 </div>
               }
@@ -179,7 +165,7 @@ function App() {
 
         <footer className="footer">
           <p>
-            🎓 SSI Sepolia • Built for decentralized academic credentials •{" "}
+            🎓 SSI Sepolia • Engineered for premium decentralized experiences •{" "}
             <a href="https://sepolia.etherscan.io/" target="_blank" rel="noopener noreferrer">
               View on Etherscan
             </a>

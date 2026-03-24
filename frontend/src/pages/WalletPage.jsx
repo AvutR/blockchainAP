@@ -1,9 +1,3 @@
-/**
- * Wallet Page
- *
- * Student wallet for storing and managing credentials
- */
-
 import React, { useState, useEffect } from "react";
 import { walletAPI } from "../services/api";
 import CredentialCard from "../components/CredentialCard";
@@ -29,7 +23,8 @@ function WalletPage() {
     } catch (error) {
       console.error("Error fetching credentials:", error);
     } finally {
-      setLoading(false);
+      // Simulate slight delay for smooth animation
+      setTimeout(() => setLoading(false), 300);
     }
   };
 
@@ -48,7 +43,7 @@ function WalletPage() {
       } catch (error) {
         console.error("Error fetching credentials:", error);
       } finally {
-        setLoading(false);
+        setTimeout(() => setLoading(false), 300);
       }
     };
 
@@ -84,57 +79,66 @@ function WalletPage() {
   };
 
   return (
-    <div className="wallet-page">
-      <div className="container">
-        <div className="header">
-          <h1>ðŸ‘¤ Student Wallet</h1>
-          <p>View, download, and share your academic credentials</p>
+    <div className="wallet-page container mt-20">
+      <div className="header">
+        <h1>👤 Student Wallet</h1>
+        <p>A secure vault to view, manage, and cryptographically share your credentials.</p>
+      </div>
+
+      <div className="user-section glass-panel">
+        <label>Access Wallet Identity</label>
+        <div className="user-input-group">
+          <input
+            type="text"
+            value={userId}
+            onChange={handleUserIdChange}
+            placeholder="Student ID / Credential ID / Credential Hash"
+          />
+          <button onClick={() => loadCredentials()} disabled={!userId || loading} className="btn-primary">
+            {loading ? "🔄 Syncing..." : "🔓 Unlock"}
+          </button>
         </div>
+      </div>
 
-        <div className="user-section">
-          <label>Student ID / Credential ID / Credential Hash</label>
-          <div className="user-input-group">
-            <input
-              type="text"
-              value={userId}
-              onChange={handleUserIdChange}
-              placeholder="Enter a student ID, credential ID, or credential hash"
-            />
-            <button onClick={() => loadCredentials()} disabled={!userId} className="btn-secondary">
-              ðŸ”„ Load
-            </button>
-          </div>
+      {loading && (
+        <div className="loading" style={{ animation: 'fadeIn 0.5s' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '10px', animation: 'spin 1.5s linear infinite' }}>⏳</div>
+          Syncing with blockchain network...
         </div>
+      )}
 
-        {loading && <div className="loading">â³ Loading credentials...</div>}
+      {!loading && credentials.length === 0 && userId && (
+        <div className="empty-state glass-panel" style={{ maxWidth: '600px', margin: '0 auto', animation: 'fadeUp 0.6s' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '15px' }}>📭</div>
+          <p>No anchored credentials found for this identity.</p>
+        </div>
+      )}
 
-        {!loading && credentials.length === 0 && userId && (
-          <div className="empty-state">
-            <p>ðŸ“­ No credentials found for this student ID</p>
-          </div>
-        )}
-
-        {!loading && credentials.length > 0 && (
+      {!loading && credentials.length > 0 && (
+        <div className="credentials-grid-container">
+          <h2>Your Credentials <span style={{ opacity: 0.5, fontSize: '1.2rem', marginLeft: '10px' }}>({credentials.length})</span></h2>
           <div className="credentials-grid">
-            <h2>Your Credentials ({credentials.length})</h2>
-            {credentials.map((credential) => (
-              <CredentialCard
-                key={credential.id}
-                credential={credential}
-                onDownload={handleDownload}
-                onQR={handleShowQR}
-              />
+            {credentials.map((credential, idx) => (
+              <div key={credential.id} style={{ animation: `fadeUp 0.5s ease ${idx * 0.1}s both` }}>
+                <CredentialCard
+                  credential={credential}
+                  onDownload={handleDownload}
+                  onQR={handleShowQR}
+                />
+              </div>
             ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {showQR && selectedCredential && (
+      {showQR && selectedCredential && (
+        <div style={{ animation: 'fadeIn 0.3s' }}>
           <QRCodeDisplay
             credential={selectedCredential}
             onClose={() => setShowQR(false)}
           />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

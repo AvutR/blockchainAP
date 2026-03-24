@@ -1,9 +1,9 @@
 {
   "contract": "CredentialRegistry",
   "network": "sepolia",
-  "contractAddress": "0xaC4a4bbEeD7CFb4724C58885103D9f8fEA36571B",
-  "deployerAddress": "0xF7371242c9dCFcc7C1CA8AcC1B067e455D67407C",
-  "deploymentTimestamp": "2026-03-24T12:44:03.118Z",
-  "transactionHash": "0x08334f94c53dec6e8e97f5fefa9cbae3d751f724b14752f24e1de5b73244beb5",
-  "blockNumber": null
+  "contractAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "deployerAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "deploymentTimestamp": "2026-03-24T15:59:24.381Z",
+  "transactionHash": "0x902f0d5d7fa58724882e6dbb161b360f6cc2d7439f6fdb72cb71a7105ac08475",
+  "blockNumber": 1
 }
