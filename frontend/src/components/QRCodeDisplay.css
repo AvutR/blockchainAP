@@ -1,0 +1,131 @@
+/* QR Code Display Styles */
+
+.qr-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.qr-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 400px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+  transition: color 0.3s ease;
+}
+
+.close-btn:hover {
+  color: #1f2937;
+}
+
+.qr-modal h2 {
+  margin: 0 0 20px 0;
+  font-size: 1.5rem;
+  color: #1f2937;
+}
+
+.credential-info {
+  background: #f9fafb;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.credential-info p {
+  margin: 5px 0;
+}
+
+.credential-info p strong {
+  display: block;
+  font-size: 1.1rem;
+  color: #1f2937;
+  margin-bottom: 5px;
+}
+
+.degree {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.year {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.qr-container {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.qr-image {
+  max-width: 100%;
+  height: auto;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px;
+  background: white;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: 15px;
+  line-height: 1.5;
+}
+
+.loading,
+.error {
+  padding: 20px;
+  text-align: center;
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+.error {
+  color: #ef4444;
+  background: #fef2f2;
+  border-radius: 8px;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-secondary {
+  flex: 1;
+}
+
+@media (max-width: 480px) {
+  .qr-modal {
+    padding: 20px;
+  }
+
+  .qr-modal h2 {
+    font-size: 1.25rem;
+  }
+}

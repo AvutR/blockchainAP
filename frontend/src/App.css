@@ -1,0 +1,532 @@
+/* ============================================================================
+   Global Styles
+   ============================================================================ */
+
+:root {
+  --primary: #3b82f6;
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --dark: #1f2937;
+  --light: #f3f4f6;
+  --text: #374151;
+  --border: #e5e7eb;
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text);
+  background: #fafbfc;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================================
+   App Layout
+   ============================================================================ */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px 0;
+}
+
+/* ============================================================================
+   Container
+   ============================================================================ */
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ============================================================================
+   Home Page
+   ============================================================================ */
+
+.home-page {
+  padding: 60px 0 40px 0;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.hero h1 {
+  font-size: 3.5rem;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero p {
+  font-size: 1.25rem;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.hero-description {
+  max-width: 600px;
+  margin: 30px auto 40px;
+  font-size: 1rem;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.cta-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 30px;
+}
+
+/* ============================================================================
+   Buttons
+   ============================================================================ */
+
+.btn,
+button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary,
+.btn:not(.btn-secondary) {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover,
+.btn:not(.btn-secondary):hover {
+  background: #2563eb;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-secondary {
+  background: var(--light);
+  color: var(--dark);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: white;
+  border-color: var(--primary);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   Features Grid
+   ============================================================================ */
+
+.features,
+.workflow,
+.info-section {
+  margin-bottom: 60px;
+}
+
+.features h2,
+.workflow h2,
+.info-section h2 {
+  font-size: 2rem;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.feature {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.feature:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.feature h3 {
+  font-size: 1.25rem;
+  margin-bottom: 10px;
+}
+
+.feature p {
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+/* ============================================================================
+   Workflow
+   ============================================================================ */
+
+.workflow-steps {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  overflow-x: auto;
+  padding: 20px 0;
+  margin-bottom: 30px;
+}
+
+.step {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  min-width: 150px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  font-weight: bold;
+  margin: 0 auto 10px;
+}
+
+.step h3 {
+  font-size: 1rem;
+  margin-bottom: 5px;
+}
+
+.step p {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.arrow {
+  font-size: 1.5rem;
+  color: var(--primary);
+  min-width: 30px;
+}
+
+/* ============================================================================
+   Tech Stack
+   ============================================================================ */
+
+.tech-stack {
+  background: var(--light);
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.tech-stack h3 {
+  margin-bottom: 15px;
+}
+
+.tech-stack ul {
+  list-style: none;
+  columns: 2;
+  gap: 30px;
+}
+
+.tech-stack li {
+  padding: 8px 0;
+}
+
+/* ============================================================================
+   Forms
+   ============================================================================ */
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--dark);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ============================================================================
+   Cards
+   ============================================================================ */
+
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================================
+   Status Messages
+   ============================================================================ */
+
+.success-box,
+.error-box,
+.info-box,
+.warning-box {
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border-left: 4px solid;
+}
+
+.success-box {
+  background: #ecfdf5;
+  border-color: var(--success);
+  color: #065f46;
+}
+
+.error-box {
+  background: #fef2f2;
+  border-color: var(--error);
+  color: #7f1d1d;
+}
+
+.info-box {
+  background: #eff6ff;
+  border-color: var(--primary);
+  color: #0c2340;
+}
+
+.warning-box {
+  background: #fffbeb;
+  border-color: var(--warning);
+  color: #78370f;
+}
+
+/* ============================================================================
+   Footer
+   ============================================================================ */
+
+.footer {
+  background: var(--dark);
+  color: white;
+  padding: 20px;
+  text-align: center;
+  margin-top: 40px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer a {
+  color: #93c5fd;
+}
+
+.footer a:hover {
+  color: #60a5fa;
+}
+
+/* ============================================================================
+   Loading & Empty States
+   ============================================================================ */
+
+.loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+  color: #6b7280;
+}
+
+.error-page {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.error-page h1 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: var(--error);
+}
+
+/* ============================================================================
+   Responsive Design
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .hero p {
+    font-size: 1rem;
+  }
+
+  .cta-buttons {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-steps {
+    flex-direction: column;
+  }
+
+  .arrow {
+    transform: rotate(90deg);
+  }
+
+  .tech-stack ul {
+    columns: 1;
+  }
+}
+
+/* ============================================================================
+   Code Blocks
+   ============================================================================ */
+
+code {
+  background: var(--light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: "Courier New", monospace;
+  word-break: break-all;
+}
+
+.code-block {
+  background: #1f2937;
+  color: #f3f4f6;
+  padding: 20px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 20px 0;
+}
+
+/* ============================================================================
+   Utility Classes
+   ============================================================================ */
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.mb-10 {
+  margin-bottom: 10px;
+}
+
+.mb-20 {
+  margin-bottom: 20px;
+}
+
+.mt-20 {
+  margin-top: 20px;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gap-10 {
+  gap: 10px;
+}
+
+.gap-20 {
+  gap: 20px;
+}
