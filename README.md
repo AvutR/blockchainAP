@@ -1,628 +1,413 @@
-# 🎓 Decentralized Self-Sovereign Student Identity System (SSI) on Sepolia
+# SSI Sepolia Student Credential Demo
 
-A production-ready blockchain-based identity management system that enables students to maintain tamper-proof, verifiable academic credentials using Ethereum's Sepolia testnet.
+This repository is a working demo for issuing, storing, and verifying academic credentials with a Node.js backend, a React frontend, and a Solidity contract on Ethereum Sepolia.
 
----
+The README below describes the code as it works today, not the original template plan.
 
-## 📋 Table of Contents
+## What Is Actually Working
 
-1. [Overview](#overview)
-2. [Architecture](#architecture)
-3. [Project Structure](#project-structure)
-4. [Prerequisites](#prerequisites)
-5. [Installation](#installation)
-6. [Configuration](#configuration)
-7. [Deployment](#deployment)
-8. [Usage](#usage)
-9. [API Documentation](#api-documentation)
-10. [Testing](#testing)
-11. [Bonus Features](#bonus-features)
+- The backend creates a credential object, hashes it with `keccak256(JSON.stringify(...))`, signs the hash with the issuer private key from `backend/.env`, and registers the hash on-chain.
+- The smart contract stores only credential metadata on-chain: issuer address, issue timestamp, revocation flag, and credential type.
+- The backend stores full credential payloads in memory using JavaScript `Map` objects.
+- The frontend has three working screens:
+  - `/issuer` to issue a credential
+  - `/wallet` to look up credentials by student ID, credential ID, or credential hash
+  - `/verify` to upload a downloaded JSON credential and validate it
 
----
+## Important Current Limitations
 
-## 🎯 Overview
+- Wallet storage is in-memory only. If the backend restarts, issued credentials disappear from the wallet API until they are re-issued.
+- The issuer flow does not use MetaMask. Transactions are sent by the backend signer from `backend/.env`.
+- The wallet page stores only the last lookup value in browser `localStorage`, not the credential data itself.
+- The contract supports revocation, but the current frontend does not expose revoke or restore actions.
+- Contract tests are included, but they are not all passing in the current repo state.
 
-**SSI Sepolia** implements Self-Sovereign Identity principles by allowing:
+## Current Sepolia Deployment
 
-- **Students** to own their credentials without central authority
-- **Issuers** (universities) to cryptographically sign credentials
-- **Verifiers** to validate credentials through blockchain verification
-- **Tamper-proof anchoring** using Ethereum smart contracts on Sepolia
+- Network: Sepolia
+- Contract: `CredentialRegistry`
+- Contract address: `0xaC4a4bbEeD7CFb4724C58885103D9f8fEA36571B`
+- Deployer address: `0xF7371242c9dCFcc7C1CA8AcC1B067e455D67407C`
+- Deployment record: `contracts/deployments/sepolia.json`
+- Etherscan: `https://sepolia.etherscan.io/address/0xaC4a4bbEeD7CFb4724C58885103D9f8fEA36571B`
 
-### Key Benefits
+## Architecture
 
-✅ **Decentralized**: No single point of failure  
-✅ **Privacy-Preserving**: Selective disclosure of information  
-✅ **Cryptographically Secure**: Signature verification + blockchain anchoring  
-✅ **User-Sovereign**: Students fully control their credentials  
-✅ **Web3-Ready**: Built with modern blockchain standards  
+### Backend
 
----
+The backend lives in `backend/src` and is the center of the app:
 
-## 🏗️ Architecture
+- `app.js` exposes REST endpoints and a blockchain status endpoint
+- `services/cryptoService.js` hashes and signs credentials
+- `services/blockchainService.js` talks to the deployed smart contract with `ethers.js`
+- `services/credentialService.js` coordinates issuance and keeps in-memory wallet data
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Frontend (React)                     │
-│  ┌──────────────┐  ┌──────────┐  ┌──────────────┐     │
-│  │ Issuer Page  │  │ Wallet   │  │ Verifier     │     │
-│  │              │  │ Page     │  │ Portal       │     │
-│  └──────────────┘  └──────────┘  └──────────────┘     │
-└──────────────────────────┬──────────────────────────────┘
-                           │ REST API
-┌──────────────────────────┴──────────────────────────────┐
-│              Backend (Node.js/Express)                  │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │  Controllers: Issuer | Wallet | Verifier       │   │
-│  ├─────────────────────────────────────────────────┤   │
-│  │  Services:                                      │   │
-│  │  ├─ Crypto Service (hashing, signing)          │   │
-│  │  ├─ Blockchain Service (ethers.js)             │   │
-│  │  └─ Credential Service (core logic)            │   │
-│  └─────────────────────────────────────────────────┘   │
-└──────────────────────────┬──────────────────────────────┘
-                           │ ethers.js
-┌──────────────────────────┴──────────────────────────────┐
-│     Smart Contract (Solidity on Sepolia)                │
-│  ┌──────────────────────────────────────────────┐      │
-│  │  CredentialRegistry.sol                      │      │
-│  │  - registerCredential(hash)                  │      │
-│  │  - verifyCredential(hash)                    │      │
-│  │  - getIssuer(hash)                           │      │
-│  └──────────────────────────────────────────────┘      │
-└──────────────────────────────────────────────────────────┘
+### Smart Contract
+
+`contracts/CredentialRegistry.sol` supports:
+
+- admin-managed issuer registration
+- approved issuer checks
+- credential registration
+- credential verification
+- credential revocation and restore
+- issuer info queries
+
+### Frontend
+
+The React app lives in `frontend/src`:
+
+- `pages/IssuerPage.jsx` issues credentials
+- `pages/WalletPage.jsx` loads credentials from the backend and supports JSON download and QR code generation
+- `pages/VerifierPage.jsx` uploads a credential JSON file and verifies it against signature and blockchain data
+
+## Exact Runtime Flow
+
+### 1. Issuing a Credential
+
+The issuer page calls:
+
+```http
+POST /api/issuer/issue-credential
 ```
 
----
+Request body:
 
-## 📁 Project Structure
-
-```
-ssi-sepolia-project/
-│
-├── contracts/                          # Smart Contracts Layer
-│   ├── CredentialRegistry.sol          # Main contract
-│   ├── test/                           # Contract tests
-│   └── artifacts/                      # Compiled contracts
-│
-├── backend/                            # Node.js Backend
-│   ├── src/
-│   │   ├── controllers/
-│   │   │   ├── issuerController.js     # Issue credentials
-│   │   │   ├── walletController.js     # Student wallet
-│   │   │   └── verifierController.js   # Verification logic
-│   │   │
-│   │   ├── services/
-│   │   │   ├── cryptoService.js        # Cryptographic operations
-│   │   │   ├── blockchainService.js    # Web3 interactions
-│   │   │   └── credentialService.js    # Core credential logic
-│   │   │
-│   │   ├── routes/
-│   │   │   ├── issuerRoutes.js
-│   │   │   ├── walletRoutes.js
-│   │   │   └── verifierRoutes.js
-│   │   │
-│   │   ├── models/
-│   │   │   └── credentialModel.js
-│   │   │
-│   │   ├── config/
-│   │   │   └── web3.js                 # Web3 initialization
-│   │   │
-│   │   ├── middleware/
-│   │   │   └── errorHandler.js
-│   │   │
-│   │   └── app.js                      # Express app setup
-│   │
-│   ├── .env
-│   └── package.json
-│
-├── frontend/                           # React Frontend
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── IssuerPage.jsx          # Issuer dashboard
-│   │   │   ├── WalletPage.jsx          # Student wallet
-│   │   │   └── VerifierPage.jsx        # Verification portal
-│   │   │
-│   │   ├── components/
-│   │   │   ├── CredentialCard.jsx      # Credential display
-│   │   │   ├── QRCodeDisplay.jsx       # QR code generation
-│   │   │   ├── UploadBox.jsx           # File upload
-│   │   │   └── Navigation.jsx          # Top navigation
-│   │   │
-│   │   ├── services/
-│   │   │   └── api.js                  # Backend API calls
-│   │   │
-│   │   ├── styles/
-│   │   │   └── App.css
-│   │   │
-│   │   ├── App.jsx
-│   │   └── index.js
-│   │
-│   ├── public/
-│   └── package.json
-│
-├── scripts/
-│   ├── deploy.js                       # Contract deployment script
-│   └── seed.js                         # Test data generation
-│
-├── .env.example                        # Environment template
-├── .gitignore
-├── hardhat.config.js                   # Hardhat configuration
-├── package.json                        # Root package.json
-└── README.md                           # This file
-
-
+```json
+{
+  "studentName": "Alice Johnson",
+  "degree": "Bachelor of Science in Computer Science",
+  "year": 2026,
+  "studentId": "Alice Johnson"
+}
 ```
 
----
+What the backend does:
 
-## 📋 Prerequisites
+1. Validates `studentName`, `degree`, and `year`.
+2. Loads `PRIVATE_KEY`, `SEPOLIA_RPC_URL`, and `CONTRACT_ADDRESS` from environment variables.
+3. Calls `ensureIssuerReady()`.
+4. If the signer is already approved, issuance continues.
+5. If the signer is the contract admin but not yet approved, the backend auto-registers that signer as an issuer.
+6. If the signer is neither approved nor admin, issuance fails with a `403`.
+7. Builds a credential object with:
+   - `id`
+   - `studentName`
+   - `degree`
+   - `year`
+   - `issuedAt`
+   - `version`
+8. Hashes the full JSON credential.
+9. Signs the hash with the backend private key.
+10. Registers the hash and credential type on Sepolia.
+11. Stores the full issued credential in backend memory under the student ID.
 
-Ensure you have installed:
+Successful response includes:
 
-- **Node.js** v16+ (https://nodejs.org/)
-- **npm** or **yarn** package manager
-- **Git** for version control
-- **MetaMask** browser extension (for testing)
+- `credentialId`
+- `studentId`
+- `credentialHash`
+- `blockchainTx`
+- `blockNumber`
+- `credential`
 
-### Sepolia Testnet Setup
+### 2. Looking Up Credentials in the Wallet
 
-1. Get Sepolia ETH from [Sepolia Faucet](https://www.sepoliafaucet.com/)
-2. Add Sepolia to MetaMask:
-   - Chain ID: 11155111
-   - RPC URL: `https://sepolia.infura.io/v3/YOUR_KEY`
-   - Currency: ETH
+The wallet page calls:
 
----
-
-## 🚀 Installation
-
-### 1. Clone Repository
-
-```bash
-git clone <your-repo>
-cd ssi-sepolia-project
+```http
+GET /api/wallet/credentials?userId=<lookup>
 ```
 
-### 2. Install Root Dependencies
+The lookup value can be:
 
-```bash
-npm install
+- student ID
+- credential ID
+- credential hash
+
+What happens:
+
+- The backend searches its in-memory store.
+- Matching credentials are returned with summary fields such as `studentName`, `degree`, `year`, `credentialType`, `credentialHash`, and `blockchainTx`.
+- The page can then:
+  - download the full JSON export
+  - request a QR code for the credential hash
+
+Downloaded JSON format:
+
+```json
+{
+  "credentialHash": "0x...",
+  "signature": "0x...",
+  "credentialType": "Bachelor of Science in Computer Science",
+  "blockchainTx": "0x...",
+  "credential": {
+    "id": "uuid",
+    "studentName": "Alice Johnson",
+    "degree": "Bachelor of Science in Computer Science",
+    "year": 2026,
+    "issuedAt": "2026-03-24T12:00:00.000Z",
+    "version": "1.0"
+  }
+}
 ```
 
-### 3. Install Backend Dependencies
+### 3. Verifying a Credential
 
-```bash
-cd backend
-npm install
-cd ..
+The verifier page expects the downloaded JSON file and calls:
+
+```http
+POST /api/verify/validate-credential
 ```
 
-### 4. Install Frontend Dependencies
+Request body:
 
-```bash
-cd frontend
-npm install
-cd ..
+```json
+{
+  "credential": {
+    "id": "uuid",
+    "studentName": "Alice Johnson",
+    "degree": "Bachelor of Science in Computer Science",
+    "year": 2026,
+    "issuedAt": "2026-03-24T12:00:00.000Z",
+    "version": "1.0"
+  },
+  "signature": "0x...",
+  "credentialHash": "0x..."
+}
 ```
 
-### 5. Setup Environment Variables
+What the backend verifies:
 
-```bash
-# Copy template
-cp .env.example .env
+1. Recomputes the credential hash from the uploaded JSON.
+2. If `credentialHash` was supplied, checks that it matches the recomputed hash.
+3. Finds the issuer address from the credential or from the blockchain.
+4. Verifies the ECDSA signature against the issuer address.
+5. Checks whether the hash is registered and valid on-chain.
 
-# Edit with your values
-# Add your:
-# - PRIVATE_KEY (from MetaMask)
-# - SEPOLIA_RPC_URL (from Infura/Alchemy)
-# - Others as needed
-```
+Verification behavior:
 
----
+- If blockchain access is available, final validity is `signatureValid && blockchainValid`.
+- If blockchain access is unavailable, the response still reports signature status and marks blockchain as unavailable.
 
-## ⚙️ Configuration
+## API Summary
 
-### Backend Configuration (.env)
+Base URL:
 
-```env
-PRIVATE_KEY=0x...your_private_key
-SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/your_key
-PORT=5000
-```
-
-### Frontend Configuration
-
-Set in `frontend/.env`:
-
-```env
-REACT_APP_BACKEND_URL=http://localhost:5000
-REACT_APP_CONTRACT_ADDRESS=0x...your_contract
-```
-
----
-
-## 🔗 Deployment
-
-### Step 1: Deploy Smart Contract
-
-```bash
-# Compile contract
-npx hardhat compile
-
-# Deploy to Sepolia
-npx hardhat run scripts/deploy.js --network sepolia
-```
-
-**Output**: Save the contract address from output
-
-### Step 2: Update Configuration
-
-```bash
-# Update .env with contract address
-CONTRACT_ADDRESS=0x...from_deployment
-```
-
-### Step 3: Start Backend
-
-```bash
-cd backend
-npm start
-# Server runs on http://localhost:5000
-```
-
-### Step 4: Start Frontend
-
-```bash
-cd frontend
-npm start
-# React app opens on http://localhost:3000
-```
-
----
-
-## 💻 Usage
-
-### 📝 Issuing a Credential
-
-1. Navigate to **Issuer Page**
-2. Fill in credential details:
-   - Student Name
-   - Degree Name
-   - Graduation Year
-3. Click "Issue Credential"
-4. Approve in MetaMask
-5. Transaction confirmed on Sepolia
-
-### 👤 Storing in Wallet
-
-1. Navigate to **Wallet Page**
-2. View all received credentials
-3. Download as JSON
-4. Generate QR code for sharing
-
-### 🔍 Verifying Credential
-
-1. Navigate to **Verifier Page**
-2. Upload credential JSON
-3. System checks:
-   - ✅ Signature validity
-   - ✅ Blockchain hash confirmation
-   - ✅ Issuer authenticity
-4. Results displayed in UI
-
----
-
-## 📡 API Documentation
-
-### Base URL
-
-```
+```text
 http://localhost:5000/api
 ```
 
 ### Issuer Endpoints
 
-#### Create & Issue Credential
-
-```http
-POST /issuer/create-credential
-Content-Type: application/json
-
-{
-  "studentName": "John Doe",
-  "degree": "Bachelor of Science",
-  "year": 2024,
-  "issuerAddress": "0x..."
-}
-
-Response:
-{
-  "credentialHash": "0xabc123...",
-  "signature": "0xdef456...",
-  "credential": {
-    "studentName": "John Doe",
-    "degree": "Bachelor of Science",
-    "year": 2024,
-    "issuedAt": "2024-03-24T10:30:00Z"
-  }
-}
-```
+- `POST /issuer/create-credential`
+- `POST /issuer/issue-credential`
+- `GET /issuer/info`
+- `GET /issuer/stats`
 
 ### Wallet Endpoints
 
-#### Get Stored Credentials
-
-```http
-GET /wallet/credentials?userId=student123
-
-Response:
-{
-  "credentials": [
-    {
-      "id": "cred_1",
-      "studentName": "John Doe",
-      "degree": "Bachelor of Science",
-      "year": 2024,
-      "issuedAt": "2024-03-24T10:30:00Z",
-      "credentialHash": "0xabc123..."
-    }
-  ]
-}
-```
-
-#### Store Credential
-
-```http
-POST /wallet/store
-Content-Type: application/json
-
-{
-  "userId": "student123",
-  "credential": { ...credential object }
-}
-
-Response:
-{
-  "success": true,
-  "credentialId": "cred_1"
-}
-```
+- `POST /wallet/store`
+- `GET /wallet/credentials`
+- `GET /wallet/credential/:hash`
+- `POST /wallet/qr`
+- `GET /wallet/download/:hash`
+- `GET /wallet/summary`
 
 ### Verifier Endpoints
 
-#### Verify Credential
+- `POST /verify/validate-credential`
+- `POST /verify/batch`
+- `GET /verify/credential/:hash`
+- `POST /verify/issuer`
+- `POST /verify/report`
 
-```http
-POST /verify/validate-credential
-Content-Type: application/json
+### Utility Endpoints
 
-{
-  "credential": { ...credential object },
-  "signature": "0xdef456..."
-}
+- `GET /`
+- `GET /health`
+- `GET /api/blockchain/status`
 
-Response:
-{
-  "isValid": true,
-  "signatureValid": true,
-  "onChainValid": true,
-  "issuerAddress": "0x...",
-  "verifiedAt": "2024-03-24T10:35:00Z"
-}
+## Project Structure
+
+```text
+blockchainAP/
+|-- contracts/
+|   |-- CredentialRegistry.sol
+|   |-- deployments/sepolia.json
+|   `-- test/CredentialRegistry.test.js
+|-- backend/
+|   |-- src/app.js
+|   |-- src/controllers/
+|   |-- src/routes/
+|   `-- src/services/
+|-- frontend/
+|   |-- src/App.jsx
+|   |-- src/pages/
+|   |-- src/components/
+|   `-- src/services/api.js
+|-- scripts/
+|   |-- deploy.js
+|   `-- seed.js
+|-- hardhat.config.js
+`-- README.md
 ```
 
----
+## Setup
 
-## 🧪 Testing
+### Prerequisites
 
-### Unit Tests (Backend)
+- Node.js 16 or newer
+- npm
+- A Sepolia RPC URL
+- A funded Sepolia private key for the backend signer
+
+### 1. Install Dependencies
+
+From the project root:
 
 ```bash
-cd backend
-npm test
+npm install
+cd backend && npm install
+cd ../frontend && npm install
+cd ..
 ```
 
-### Contract Tests
+### 2. Configure Root `.env` For Hardhat
+
+The root `.env` is used by Hardhat scripts and tests.
+
+Example:
+
+```env
+PRIVATE_KEY=your_private_key_here
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/your_key
+CONTRACT_ADDRESS=0xyour_contract_address
+```
+
+### 3. Configure `backend/.env`
+
+The backend is started from the `backend` folder, so it reads `backend/.env`.
+
+Example:
+
+```env
+PRIVATE_KEY=your_private_key_here
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/your_key
+CONTRACT_ADDRESS=0xyour_contract_address
+PORT=5000
+FRONTEND_URL=http://localhost:3000
+ISSUER_NAME=SSI Sepolia Issuer
+```
+
+### 4. Optional Frontend `.env`
+
+The frontend already defaults to `http://localhost:5000/api`, so this file is optional.
+
+If you want to set it explicitly:
+
+```env
+REACT_APP_BACKEND_URL=http://localhost:5000/api
+```
+
+## Run The App
+
+### Start The Backend
 
 ```bash
-npx hardhat test
+npm run backend
 ```
 
-### Manual Testing
+Backend URLs:
 
-1. **Test Issuance**:
-   - Go to Issuer Page
-   - Create credential
-   - Verify MetaMask transaction
+- `http://localhost:5000/`
+- `http://localhost:5000/health`
+- `http://localhost:5000/api/blockchain/status`
 
-2. **Test Storage**:
-   - Go to Wallet Page
-   - Download credential JSON
-   - Verify file structure
+### Start The Frontend
 
-3. **Test Verification**:
-   - Go to Verifier Page
-   - Upload downloaded JSON
-   - Verify all checks pass
-
-4. **Test on Block Explorer**:
-   - Visit [Sepolia Etherscan](https://sepolia.etherscan.io/)
-   - Paste contract address
-   - Verify functions called
-
----
-
-## ⭐ Bonus Features (Implementation Guide)
-
-### 1. IPFS Storage
-
-Store full credential on IPFS, hash on-chain:
-
-```solidity
-mapping(bytes32 => string) ipfsCID;
-
-function registerCredentialWithIPFS(bytes32 hash, string memory cid) {
-  ipfsCID[hash] = cid;
-  // ... rest of logic
-}
-```
-
-### 2. DID Standard
-
-Implement Decentralized Identifiers:
-
-```
-did:ethr:0x1234567890123456789012345678901234567890
-```
-
-Format: `did:ethr:<wallet_address>`
-
-### 3. Role-Based Access
-
-Only approved issuers can issue:
-
-```solidity
-mapping(address => bool) approvedIssuers;
-
-function registerCredential(bytes32 hash) {
-  require(approvedIssuers[msg.sender], "Not an approved issuer");
-  // ... rest of logic
-}
-```
-
-### 4. Revocation System
-
-Allow credential revocation:
-
-```solidity
-mapping(bytes32 => bool) revoked;
-
-function revokeCredential(bytes32 hash) {
-  require(msg.sender == issuer[hash], "Only issuer can revoke");
-  revoked[hash] = true;
-}
-
-function isValid(bytes32 hash) returns (bool) {
-  return !revoked[hash];
-}
-```
-
----
-
-## 🔐 Security Considerations
-
-### Private Key Management
-
-⚠️ **NEVER commit `.env` to version control**
+In a separate terminal:
 
 ```bash
-echo ".env" >> .gitignore
+npm run frontend
 ```
 
-### Gas Optimization
+Frontend URL:
 
-- Minimize storage operations
-- Batch transactions where possible
-- Use events for off-chain indexing
+- `http://localhost:3000`
 
-### Input Validation
+## Smart Contract Commands
 
-- Validate all user inputs
-- Check address formats
-- Verify data types
-
----
-
-## 🐛 Troubleshooting
-
-### Contract Not Deploying
+Compile:
 
 ```bash
-# Check Sepolia RPC URL
-# Verify private key has balance
-# Check hardhat config
-
-npx hardhat accounts --network sepolia
+npx hardhat compile
 ```
 
-### Backend Connection Issues
+Deploy to Sepolia:
 
 ```bash
-# Verify backend is running
-curl http://localhost:5000/api/health
-
-# Check environment variables
-# Verify contract address in .env
+npm run deploy-contract
 ```
 
-### Frontend API Errors
+Run contract tests:
 
 ```bash
-# Check backend is accessible
-# Verify CORS is enabled in backend
-# Check browser console for details
+npm run test-contract
 ```
 
----
-
-## 📊 Monitoring & Logs
-
-### Backend Logs
+Generate sample data:
 
 ```bash
-tail -f backend/logs/app.log
+npm run seed
 ```
 
-### Transaction Tracking
+## Manual Demo Steps
 
-Visit [Sepolia Etherscan](https://sepolia.etherscan.io/) and search:
-- Transaction hash
-- Contract address
-- Wallet address
+### Issue
 
----
+1. Open `http://localhost:3000/issuer`.
+2. Enter a student name, degree, and year.
+3. Submit the form.
+4. Copy the returned wallet lookup ID.
+5. Open the Etherscan transaction link shown in the success panel if you want to inspect the transaction.
 
-## 🎓 Learning Resources
+### Wallet
 
-- [Ethereum Sepolia](https://www.alchemy.com/overviews/sepolia-testnet)
-- [ethers.js Documentation](https://docs.ethers.org/)
-- [Solidity Best Practices](https://docs.soliditylang.org/)
-- [Self-Sovereign Identity](https://en.wikipedia.org/wiki/Self-sovereign_identity)
+1. Open `http://localhost:3000/wallet`.
+2. Paste the wallet lookup ID, credential ID, or credential hash.
+3. Load the credential.
+4. Download the JSON file if you want a verifier-friendly export.
+5. Generate a QR code if needed.
 
----
+### Verify
 
-## 📝 License
+1. Open `http://localhost:3000/verify`.
+2. Upload the JSON downloaded from the wallet.
+3. Run verification.
+4. Review the returned signature and blockchain checks.
 
-MIT License - See LICENSE file for details
+## Current Test Status
 
----
+Running `npm run test-contract` in this repo currently produces partial success:
 
-## 👨‍💻 Authors
+- 12 tests passing
+- 15 tests failing
 
-- Your Name
-- Your University
-- Date: March 2024
+The failures are from the test suite setup, not from the README:
 
----
+- missing Hardhat Chai matcher setup for `revertedWith` and `emit`
+- direct `BigNumber` to number comparisons
+- a call to `credentialExists` as if it were a public function, but it is only a modifier in the contract
 
-## 🤝 Contributing
+## Known Gaps
 
-1. Fork repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+- No database is connected yet.
+- Credentials cannot be recovered from the blockchain alone because the full credential body is not stored on-chain.
+- Backend state is single-process memory only.
+- There is no authentication layer for issuer, wallet, or verifier users.
+- The frontend does not expose issuer registration, approval management, revocation, or restore flows.
 
----
+## Security Note
 
-## 📞 Support
-
-For issues and questions:
-- Open GitHub Issue
-- Check Discussions
-- Email: your-email@example.com
-
----
-
-**Built with ❤️ for decentralized identity**
+Do not commit real private keys. Keep `.env` files out of version control and use a funded testnet wallet only.
