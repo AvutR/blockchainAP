@@ -82,11 +82,12 @@ class WalletController {
         });
       }
 
-      const credentials = CredentialService.getStudentCredentials(userId);
+      const credentials = CredentialService.findCredentials(userId);
 
       // Format for response (don't expose all internal fields)
       const formatted = credentials.map(c => ({
         id: c.id,
+        studentId: c.studentId,
         credentialHash: c.credentialHash,
         credentialType: c.credentialType,
         studentName: c.data?.studentName,
@@ -101,6 +102,7 @@ class WalletController {
       res.json({
         success: true,
         count: formatted.length,
+        lookupValue: userId,
         credentials: formatted
       });
 

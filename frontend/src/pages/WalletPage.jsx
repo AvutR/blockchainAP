@@ -1,6 +1,6 @@
 /**
  * Wallet Page
- * 
+ *
  * Student wallet for storing and managing credentials
  */
 
@@ -10,6 +10,8 @@ import CredentialCard from "../components/CredentialCard";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import "./WalletPage.css";
 
+const fetchWalletCredentials = async (userId) => walletAPI.getCredentials(userId);
+
 function WalletPage() {
   const [userId, setUserId] = useState(localStorage.getItem("userId") || "");
   const [credentials, setCredentials] = useState([]);
@@ -17,13 +19,12 @@ function WalletPage() {
   const [selectedCredential, setSelectedCredential] = useState(null);
   const [showQR, setShowQR] = useState(false);
 
-  // Fetch credentials
-  const fetchCredentials = async () => {
-    if (!userId) return;
+  const loadCredentials = async (targetUserId = userId) => {
+    if (!targetUserId) return;
 
     setLoading(true);
     try {
-      const response = await walletAPI.getCredentials(userId);
+      const response = await fetchWalletCredentials(targetUserId);
       setCredentials(response.credentials || []);
     } catch (error) {
       console.error("Error fetching credentials:", error);
@@ -33,10 +34,25 @@ function WalletPage() {
   };
 
   useEffect(() => {
-    if (userId) {
-      localStorage.setItem("userId", userId);
-      fetchCredentials();
+    if (!userId) {
+      return;
     }
+
+    localStorage.setItem("userId", userId);
+
+    const syncCredentials = async () => {
+      setLoading(true);
+      try {
+        const response = await fetchWalletCredentials(userId);
+        setCredentials(response.credentials || []);
+      } catch (error) {
+        console.error("Error fetching credentials:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    syncCredentials();
   }, [userId]);
 
   // Handle user ID change
@@ -55,6 +71,7 @@ function WalletPage() {
       link.href = url;
       link.download = `credential-${hash.substring(0, 8)}.json`;
       link.click();
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading credential:", error);
     }
@@ -70,30 +87,30 @@ function WalletPage() {
     <div className="wallet-page">
       <div className="container">
         <div className="header">
-          <h1>👤 Student Wallet</h1>
+          <h1>ðŸ‘¤ Student Wallet</h1>
           <p>View, download, and share your academic credentials</p>
         </div>
 
         <div className="user-section">
-          <label>Student ID / Wallet Address</label>
+          <label>Student ID / Credential ID / Credential Hash</label>
           <div className="user-input-group">
             <input
               type="text"
               value={userId}
               onChange={handleUserIdChange}
-              placeholder="Enter your student ID or wallet address"
+              placeholder="Enter a student ID, credential ID, or credential hash"
             />
-            <button onClick={fetchCredentials} disabled={!userId} className="btn-secondary">
-              🔄 Load
+            <button onClick={() => loadCredentials()} disabled={!userId} className="btn-secondary">
+              ðŸ”„ Load
             </button>
           </div>
         </div>
 
-        {loading && <div className="loading">⏳ Loading credentials...</div>}
+        {loading && <div className="loading">â³ Loading credentials...</div>}
 
         {!loading && credentials.length === 0 && userId && (
           <div className="empty-state">
-            <p>📭 No credentials found for this student ID</p>
+            <p>ðŸ“­ No credentials found for this student ID</p>
           </div>
         )}
 

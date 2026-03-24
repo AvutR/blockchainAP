@@ -10,13 +10,22 @@
     "test-contract": "npx hardhat test",
     "seed": "node scripts/seed.js"
   },
-  "keywords": ["blockchain", "ssi", "credentials", "sepolia", "ethereum"],
+  "keywords": [
+    "blockchain",
+    "ssi",
+    "credentials",
+    "sepolia",
+    "ethereum"
+  ],
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.3",
-    "hardhat": "^2.14.0",
     "chai": "^4.3.7",
-    "ethers": "^5.7.2"
+    "ethers": "^5.7.2",
+    "hardhat": "^2.28.6"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1"
   }
 }

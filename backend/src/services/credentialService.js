@@ -177,6 +177,38 @@ class CredentialService {
   }
 
   /**
+   * Find credentials by a wallet lookup key.
+   * Supports student ID, credential ID, or credential hash.
+   *
+   * @param {string} lookupKey - Lookup value entered by the user
+   * @returns {Array} Matching credentials
+   */
+  findCredentials(lookupKey) {
+    if (!lookupKey) {
+      return [];
+    }
+
+    if (this.credentials.has(lookupKey)) {
+      return this.credentials.get(lookupKey) || [];
+    }
+
+    const matches = [];
+
+    for (const credentialList of this.credentials.values()) {
+      for (const credential of credentialList) {
+        if (
+          credential.id === lookupKey ||
+          credential.credentialHash === lookupKey
+        ) {
+          matches.push(credential);
+        }
+      }
+    }
+
+    return matches;
+  }
+
+  /**
    * Get specific credential by hash
    * 
    * @param {string} credentialHash - Credential hash

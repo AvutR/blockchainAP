@@ -1,0 +1,9 @@
+{
+  "contract": "CredentialRegistry",
+  "network": "sepolia",
+  "contractAddress": "0xaC4a4bbEeD7CFb4724C58885103D9f8fEA36571B",
+  "deployerAddress": "0xF7371242c9dCFcc7C1CA8AcC1B067e455D67407C",
+  "deploymentTimestamp": "2026-03-24T12:44:03.118Z",
+  "transactionHash": "0x08334f94c53dec6e8e97f5fefa9cbae3d751f724b14752f24e1de5b73244beb5",
+  "blockNumber": null
+}

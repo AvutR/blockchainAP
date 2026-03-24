@@ -57,9 +57,52 @@ const CONTRACT_ABI = [
   },
   {
     "inputs": [{ "internalType": "bytes32", "name": "_credentialHash", "type": "bytes32" }],
-    "name": "credentialExists",
+    "name": "checkCredentialExists",
     "outputs": [{ "internalType": "bool", "name": "exists", "type": "bool" }],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "admin",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "_issuerAddress", "type": "address" }],
+    "name": "isApprovedIssuer",
+    "outputs": [{ "internalType": "bool", "name": "isApproved", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "_issuerAddress", "type": "address" }],
+    "name": "getIssuerInfo",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "issuerAddress", "type": "address" },
+          { "internalType": "string", "name": "issuerName", "type": "string" },
+          { "internalType": "bool", "name": "isApproved", "type": "bool" },
+          { "internalType": "uint256", "name": "registeredAt", "type": "uint256" }
+        ],
+        "internalType": "struct CredentialRegistry.Issuer",
+        "name": "issuer",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_issuerAddress", "type": "address" },
+      { "internalType": "string", "name": "_issuerName", "type": "string" }
+    ],
+    "name": "registerIssuer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   }
 ];
@@ -109,6 +152,137 @@ class BlockchainService {
     } catch (error) {
       console.error("[BlockchainService] Initialization failed:", error);
       throw error;
+    }
+  }
+
+  /**
+   * Get the contract admin address.
+   *
+   * @returns {Promise<string>} Admin address
+   */
+  async getAdmin() {
+    try {
+      if (!this.contract) await this.initialize();
+      return await this.contract.admin();
+    } catch (error) {
+      console.error("[BlockchainService] Error getting admin:", error);
+      throw new Error("Failed to get contract admin: " + error.message);
+    }
+  }
+
+  /**
+   * Check whether an address is an approved issuer.
+   *
+   * @param {string} issuerAddress - Address to check
+   * @returns {Promise<boolean>} True if approved
+   */
+  async isApprovedIssuer(issuerAddress) {
+    try {
+      if (!this.contract) await this.initialize();
+      return await this.contract.isApprovedIssuer(issuerAddress);
+    } catch (error) {
+      console.error("[BlockchainService] Error checking issuer approval:", error);
+      throw new Error("Failed to check issuer approval: " + error.message);
+    }
+  }
+
+  /**
+   * Get issuer info from the contract.
+   *
+   * @param {string} issuerAddress - Address to query
+   * @returns {Promise<Object>} Issuer information
+   */
+  async getIssuerInfo(issuerAddress) {
+    try {
+      if (!this.contract) await this.initialize();
+
+      const issuer = await this.contract.getIssuerInfo(issuerAddress);
+
+      return {
+        issuerAddress: issuer.issuerAddress,
+        issuerName: issuer.issuerName,
+        isApproved: issuer.isApproved,
+        registeredAt: issuer.registeredAt?.toNumber?.() || 0,
+      };
+    } catch (error) {
+      console.error("[BlockchainService] Error getting issuer info:", error);
+      throw new Error("Failed to get issuer info: " + error.message);
+    }
+  }
+
+  /**
+   * Register an issuer when the current signer has admin permissions.
+   *
+   * @param {string} issuerAddress - Issuer address to register
+   * @param {string} issuerName - Issuer display name
+   * @returns {Promise<Object>} Transaction receipt summary
+   */
+  async registerIssuer(issuerAddress, issuerName) {
+    try {
+      if (!this.contract) await this.initialize();
+
+      console.log("[BlockchainService] Registering issuer...");
+      console.log("  Issuer:", issuerAddress);
+      console.log("  Name:", issuerName);
+
+      const tx = await this.contract.registerIssuer(issuerAddress, issuerName);
+      const receipt = await tx.wait();
+
+      return {
+        transactionHash: tx.hash,
+        blockNumber: receipt.blockNumber,
+        gasUsed: receipt.gasUsed.toString(),
+        status: "success",
+      };
+    } catch (error) {
+      console.error("[BlockchainService] Error registering issuer:", error);
+      throw new Error("Failed to register issuer: " + error.message);
+    }
+  }
+
+  /**
+   * Ensure the current signer can issue credentials.
+   * If the signer is the contract admin, auto-register it as an issuer.
+   *
+   * @param {string} issuerName - Name to register on-chain when needed
+   * @returns {Promise<Object>} Issuer readiness details
+   */
+  async ensureIssuerReady(issuerName = "SSI Sepolia Issuer") {
+    try {
+      if (!this.contract || !this.signer) await this.initialize();
+
+      const signerAddress = this.signer.address;
+      const [adminAddress, approved] = await Promise.all([
+        this.getAdmin(),
+        this.isApprovedIssuer(signerAddress),
+      ]);
+
+      if (approved) {
+        return {
+          issuerAddress: signerAddress,
+          adminAddress,
+          isApproved: true,
+          autoRegistered: false,
+        };
+      }
+
+      if (adminAddress.toLowerCase() !== signerAddress.toLowerCase()) {
+        throw new Error(
+          `Issuer wallet ${signerAddress} is not approved on contract ${this.contract.address}. Register it with registerIssuer(...) from admin ${adminAddress}.`
+        );
+      }
+
+      await this.registerIssuer(signerAddress, issuerName);
+
+      return {
+        issuerAddress: signerAddress,
+        adminAddress,
+        isApproved: true,
+        autoRegistered: true,
+      };
+    } catch (error) {
+      console.error("[BlockchainService] Error ensuring issuer readiness:", error);
+      throw new Error(error.message || "Failed to prepare issuer for credential issuance.");
     }
   }
 
@@ -225,7 +399,7 @@ class BlockchainService {
     try {
       if (!this.contract) await this.initialize();
 
-      const exists = await this.contract.credentialExists(credentialHash);
+      const exists = await this.contract.checkCredentialExists(credentialHash);
       return exists;
     } catch (error) {
       console.error("[BlockchainService] Error checking existence:", error);

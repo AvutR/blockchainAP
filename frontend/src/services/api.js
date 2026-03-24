@@ -1,241 +1,289 @@
 /**
  * API Service
- * 
- * Centralized API calls to backend
+ *
+ * Centralized, reusable API layer for frontend-to-backend communication.
  */
 
 import axios from "axios";
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000/api";
+const DEFAULT_API_URL = "http://localhost:5000/api";
+
+const normalizeBaseUrl = (url) => (url || DEFAULT_API_URL).replace(/\/+$/, "");
+
+const API_URL = normalizeBaseUrl(
+  process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL
+);
 
 const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
-    "Content-Type": "application/json"
-  }
+    "Content-Type": "application/json",
+  },
 });
 
-// Add response interceptor for error handling
+const buildApiError = (error, fallbackMessage) => {
+  const message =
+    error?.response?.data?.message ||
+    error?.message ||
+    fallbackMessage ||
+    "Something went wrong while calling the API.";
+
+  const apiError = new Error(message);
+  apiError.status = error?.response?.status;
+  apiError.data = error?.response?.data;
+  apiError.originalError = error;
+
+  return apiError;
+};
+
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    console.error("API Error:", error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(buildApiError(error))
 );
 
-// ============================================================================
-// ISSUER ENDPOINTS
-// ============================================================================
+const get = async (url, config = {}, fallbackMessage) => {
+  try {
+    const response = await apiClient.get(url, config);
+    return response.data;
+  } catch (error) {
+    throw buildApiError(error, fallbackMessage);
+  }
+};
+
+const post = async (url, data = {}, config = {}, fallbackMessage) => {
+  try {
+    const response = await apiClient.post(url, data, config);
+    return response.data;
+  } catch (error) {
+    throw buildApiError(error, fallbackMessage);
+  }
+};
 
 export const issuerAPI = {
-  /**
-   * Create credential
-   */
   createCredential: async (studentName, degree, year) => {
-    const response = await apiClient.post("/issuer/create-credential", {
-      studentName,
-      degree,
-      year
-    });
-    return response.data;
+    try {
+      return await post(
+        "/issuer/create-credential",
+        { studentName, degree, year },
+        {},
+        "Unable to create credential."
+      );
+    } catch (error) {
+      throw buildApiError(error, "Unable to create credential.");
+    }
   },
 
-  /**
-   * Issue credential (create + register on blockchain)
-   */
   issueCredential: async (studentName, degree, year, studentId) => {
-    const response = await apiClient.post("/issuer/issue-credential", {
-      studentName,
-      degree,
-      year,
-      studentId
-    });
-    return response.data;
+    try {
+      return await post(
+        "/issuer/issue-credential",
+        { studentName, degree, year, studentId },
+        {},
+        "Unable to issue credential."
+      );
+    } catch (error) {
+      throw buildApiError(error, "Unable to issue credential.");
+    }
   },
 
-  /**
-   * Get issuer info
-   */
   getInfo: async () => {
-    const response = await apiClient.get("/issuer/info");
-    return response.data;
+    try {
+      return await get("/issuer/info", {}, "Unable to fetch issuer info.");
+    } catch (error) {
+      throw buildApiError(error, "Unable to fetch issuer info.");
+    }
   },
 
-  /**
-   * Get statistics
-   */
   getStats: async () => {
-    const response = await apiClient.get("/issuer/stats");
-    return response.data;
-  }
+    try {
+      return await get("/issuer/stats", {}, "Unable to fetch issuer stats.");
+    } catch (error) {
+      throw buildApiError(error, "Unable to fetch issuer stats.");
+    }
+  },
 };
-
-// ============================================================================
-// WALLET ENDPOINTS
-// ============================================================================
 
 export const walletAPI = {
-  /**
-   * Store credential
-   */
-  storeCredential: async (userId, credential, credentialHash, signature, credentialType) => {
-    const response = await apiClient.post("/wallet/store", {
-      userId,
-      credential,
-      credentialHash,
-      signature,
-      credentialType
-    });
-    return response.data;
+  storeCredential: async (
+    userId,
+    credential,
+    credentialHash,
+    signature,
+    credentialType
+  ) => {
+    try {
+      return await post(
+        "/wallet/store",
+        { userId, credential, credentialHash, signature, credentialType },
+        {},
+        "Unable to store credential."
+      );
+    } catch (error) {
+      throw buildApiError(error, "Unable to store credential.");
+    }
   },
 
-  /**
-   * Get credentials for student
-   */
   getCredentials: async (userId) => {
-    const response = await apiClient.get("/wallet/credentials", {
-      params: { userId }
-    });
-    return response.data;
+    try {
+      return await get(
+        "/wallet/credentials",
+        { params: { userId } },
+        "Unable to fetch wallet credentials."
+      );
+    } catch (error) {
+      throw buildApiError(error, "Unable to fetch wallet credentials.");
+    }
   },
 
-  /**
-   * Get specific credential
-   */
   getCredential: async (hash) => {
-    const response = await apiClient.get(`/wallet/credential/${hash}`);
-    return response.data;
+    try {
+      return await get(
+        `/wallet/credential/${hash}`,
+        {},
+        "Unable to fetch credential."
+      );
+    } catch (error) {
+      throw buildApiError(error, "Unable to fetch credential.");
+    }
   },
 
-  /**
-   * Generate QR code
-   */
   generateQR: async (credentialHash) => {
-    const response = await apiClient.post("/wallet/qr", {
-      credentialHash
-    });
-    return response.data;
+    try {
+      return await post(
+        "/wallet/qr",
+        { credentialHash },
+        {},
+        "Unable to generate QR code."
+      );
+    } catch (error) {
+      throw buildApiError(error, "Unable to generate QR code.");
+    }
   },
 
-  /**
-   * Download credential
-   */
   downloadCredential: async (hash) => {
-    const response = await apiClient.get(`/wallet/download/${hash}`);
-    return response.data;
+    try {
+      return await get(
+        `/wallet/download/${hash}`,
+        {},
+        "Unable to download credential."
+      );
+    } catch (error) {
+      throw buildApiError(error, "Unable to download credential.");
+    }
   },
 
-  /**
-   * Get wallet summary
-   */
   getSummary: async (userId) => {
-    const response = await apiClient.get("/wallet/summary", {
-      params: { userId }
-    });
-    return response.data;
-  }
+    try {
+      return await get(
+        "/wallet/summary",
+        { params: { userId } },
+        "Unable to fetch wallet summary."
+      );
+    } catch (error) {
+      throw buildApiError(error, "Unable to fetch wallet summary.");
+    }
+  },
 };
-
-// ============================================================================
-// VERIFIER ENDPOINTS
-// ============================================================================
 
 export const verifierAPI = {
-  /**
-   * Verify credential
-   */
   verifyCredential: async (credential, signature, credentialHash) => {
-    const response = await apiClient.post("/verify/validate-credential", {
-      credential,
-      signature,
-      credentialHash
-    });
-    return response.data;
+    try {
+      return await post(
+        "/verify/validate-credential",
+        { credential, signature, credentialHash },
+        {},
+        "Unable to verify credential."
+      );
+    } catch (error) {
+      throw buildApiError(error, "Unable to verify credential.");
+    }
   },
 
-  /**
-   * Batch verify credentials
-   */
   batchVerify: async (credentials) => {
-    const response = await apiClient.post("/verify/batch", {
-      credentials
-    });
-    return response.data;
+    try {
+      return await post(
+        "/verify/batch",
+        { credentials },
+        {},
+        "Unable to verify credentials."
+      );
+    } catch (error) {
+      throw buildApiError(error, "Unable to verify credentials.");
+    }
   },
 
-  /**
-   * Get credential details
-   */
   getCredentialDetails: async (hash) => {
-    const response = await apiClient.get(`/verify/credential/${hash}`);
-    return response.data;
+    try {
+      return await get(
+        `/verify/credential/${hash}`,
+        {},
+        "Unable to fetch credential details."
+      );
+    } catch (error) {
+      throw buildApiError(error, "Unable to fetch credential details.");
+    }
   },
 
-  /**
-   * Verify issuer
-   */
   verifyIssuer: async (issuerAddress, credentialHash) => {
-    const response = await apiClient.post("/verify/issuer", {
-      issuerAddress,
-      credentialHash
-    });
-    return response.data;
+    try {
+      return await post(
+        "/verify/issuer",
+        { issuerAddress, credentialHash },
+        {},
+        "Unable to verify issuer."
+      );
+    } catch (error) {
+      throw buildApiError(error, "Unable to verify issuer.");
+    }
   },
 
-  /**
-   * Get verification report
-   */
   getVerificationReport: async (credential, signature) => {
-    const response = await apiClient.post("/verify/report", {
-      credential,
-      signature
-    });
-    return response.data;
-  }
+    try {
+      return await post(
+        "/verify/report",
+        { credential, signature },
+        {},
+        "Unable to generate verification report."
+      );
+    } catch (error) {
+      throw buildApiError(error, "Unable to generate verification report.");
+    }
+  },
 };
-
-// ============================================================================
-// BLOCKCHAIN ENDPOINTS
-// ============================================================================
 
 export const blockchainAPI = {
-  /**
-   * Get blockchain status
-   */
   getStatus: async () => {
     try {
-      const response = await apiClient.get("/blockchain/status");
-      return response.data;
+      return await get("/blockchain/status", {}, "Unable to fetch blockchain status.");
     } catch (error) {
       console.warn("Blockchain status unavailable:", error);
-      return { success: false, blockchain: null };
+      return { success: false, blockchain: null, message: error.message };
     }
-  }
+  },
 };
-
-// ============================================================================
-// HEALTH CHECK
-// ============================================================================
 
 export const healthAPI = {
-  /**
-   * Check backend health
-   */
   check: async () => {
     try {
-      const response = await apiClient.get("/");
-      return response.data;
+      return await get("/", {}, "Unable to reach backend.");
     } catch (error) {
-      return { status: "error" };
+      return { status: "error", message: error.message };
     }
-  }
+  },
 };
 
-export default {
+// Backward-compatible alias in case legacy code imports issueAPI.
+export const issueAPI = issuerAPI;
+
+export { apiClient, API_URL };
+
+const api = {
+  issuerAPI,
   issueAPI,
   walletAPI,
   verifierAPI,
   blockchainAPI,
-  healthAPI
+  healthAPI,
 };
+
+export default api;

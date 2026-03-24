@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { issuerAPI, blockchainAPI } from "../services/api";
+import { issuerAPI } from "../services/api";
 import "./IssuerPage.css";
 
 function IssuerPage() {
@@ -39,7 +39,7 @@ function IssuerPage() {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: name === "year" ? parseInt(value) : value
+      [name]: name === "year" ? parseInt(value, 10) : value
     });
   };
 
@@ -61,6 +61,7 @@ function IssuerPage() {
       setResult({
         success: true,
         credentialId: response.credentialId,
+        studentId: response.studentId,
         hash: response.credentialHash,
         tx: response.blockchainTx
       });
@@ -158,6 +159,10 @@ function IssuerPage() {
             <h3>✅ Credential Issued Successfully!</h3>
             <div className="result-details">
               <div className="detail">
+                <label>Wallet Lookup ID</label>
+                <code>{result.studentId}</code>
+              </div>
+              <div className="detail">
                 <label>Credential ID</label>
                 <code>{result.credentialId}</code>
               </div>
@@ -178,7 +183,8 @@ function IssuerPage() {
                 </code>
               </div>
               <p className="note">
-                Student can now download this credential in their wallet. Share the credential ID with them.
+                Student can now open the Wallet page using the wallet lookup ID above.
+                Credential ID and credential hash will also work for lookup.
               </p>
             </div>
           </div>

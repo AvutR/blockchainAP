@@ -278,8 +278,8 @@ contract CredentialRegistry {
      * @param _credentialHash Hash of the credential
      * @return exists True if credential exists
      */
-    function credentialExists(bytes32 _credentialHash)
-        external
+    function checkCredentialExists(bytes32 _credentialHash)
+        public
         view
         returns (bool exists)
     {

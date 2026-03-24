@@ -111,6 +111,11 @@ class IssuerController {
         });
       }
 
+      const issuerReadiness = await BlockchainService.ensureIssuerReady(
+        process.env.ISSUER_NAME || "SSI Sepolia Issuer"
+      );
+      console.log("[IssuerController] Issuer readiness:", issuerReadiness);
+
       // Issue credential end-to-end
       const issued = await CredentialService.issueCredential(
         { studentName, degree, year },
@@ -124,17 +129,24 @@ class IssuerController {
         success: true,
         message: "Credential issued successfully",
         credentialId: issued.id,
+        studentId: issued.studentId,
         credentialHash: issued.credentialHash,
         blockchainTx: issued.blockchainTx,
         blockNumber: issued.blockNumber,
-        credential: issued.data
+        credential: issued.data,
+        issuer: issuerReadiness
       });
 
     } catch (error) {
       console.error("[IssuerController] Error:", error);
-      res.status(500).json({
+      const status =
+        error.message && error.message.includes("not approved on contract")
+          ? 403
+          : 500;
+
+      res.status(status).json({
         success: false,
-        message: "Failed to issue credential",
+        message: error.message || "Failed to issue credential",
         error: error.message
       });
     }
@@ -157,7 +169,8 @@ class IssuerController {
         success: true,
         issuerAddress,
         balance,
-        network: networkInfo
+        network: networkInfo,
+        issuer: await BlockchainService.getIssuerInfo(issuerAddress)
       });
 
     } catch (error) {
